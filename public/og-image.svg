@@ -1,0 +1,9 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#080808"/>
+  <rect x="50" y="50" width="1100" height="530" rx="20" stroke="#222" stroke-width="2"/>
+  <text x="600" y="250" text-anchor="middle" fill="#f0f0f0" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="800">GPU Drip</text>
+  <text x="600" y="340" text-anchor="middle" fill="#888" font-family="system-ui, -apple-system, sans-serif" font-size="36">Live GPU Price Tracking</text>
+  <text x="600" y="420" text-anchor="middle" fill="#3b82f6" font-family="system-ui, -apple-system, sans-serif" font-size="28">RTX 5090 • RX 9070 XT • RTX 5080</text>
+  <circle cx="600" cy="520" r="8" fill="#22c55e"/>
+  <text x="620" y="528" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="20">Live Prices</text>
+</svg>
