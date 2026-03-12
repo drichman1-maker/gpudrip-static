@@ -1,18 +1,11 @@
-'use client'
+import { Metadata } from 'next'
+import CompareClient from './CompareClient'
 
-import { Suspense } from 'react'
-import CompareContent from './CompareContent'
+export const metadata: Metadata = {
+  title: 'Compare GPUs | GPU Drip',
+  description: 'Compare GPU prices, specs, and performance side-by-side. Find the best graphics card for your needs.',
+}
 
 export default function ComparePage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#0a0a0a] pt-24 pb-12 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center text-gray-400">Loading comparison...</div>
-        </div>
-      </div>
-    }>
-      <CompareContent />
-    </Suspense>
-  )
+  return <CompareClient />
 }

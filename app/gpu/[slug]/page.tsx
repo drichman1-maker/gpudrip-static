@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getGPUBySlug, RETAILER_LABELS, RETAILER_URLS, getAllGPUSlugs } from '@/lib/gpu-data'
 import { getPriceHistory, getPriceStats } from '@/lib/price-history'
-import { GPUProductSchema, BreadcrumbSchema } from '@/components/schema'
+import { GPUProductSchema, BreadcrumbSchema, GPUFAQSchema } from '@/components/schema'
 import PriceChart from '@/components/price-chart'
 
 type Props = {
@@ -18,9 +18,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params
     const gpu = getGPUBySlug(slug)
     if (!gpu) return { title: 'GPU Not Found' }
+    
+    const savings = gpu.msrp_usd - gpu.current_price_usd
+    const savingsText = savings > 0 ? ` Save $${savings} off MSRP.` : ''
+    
     return {
-        title: `${gpu.model} Price Tracker & Deals`,
-        description: `Track ${gpu.model} prices across retailers. MSRP: $${gpu.msrp_usd}. ${gpu.vram_gb}GB VRAM, ${gpu.architecture} architecture.`,
+        title: `${gpu.model} Price Tracker & Deals — $${gpu.current_price_usd}`,
+        description: `Track ${gpu.model} prices across retailers. Current: $${gpu.current_price_usd} | MSRP: $${gpu.msrp_usd}.${savingsText} ${gpu.vram_gb}GB VRAM, ${gpu.architecture} architecture. Get price alerts.`,
+        keywords: [`${gpu.model} price`, `${gpu.model} deals`, `${gpu.brand} GPU price tracker`, `buy ${gpu.model}`, `GPU price comparison`],
+        openGraph: {
+            title: `${gpu.model} — $${gpu.current_price_usd} (${savings > 0 ? `Save $${savings}` : 'At MSRP'})`,
+            description: `Track ${gpu.model} prices across Best Buy, Amazon, Newegg and more. ${gpu.vram_gb}GB VRAM, ${gpu.tdp_watts}W TDP. Get price alerts.`,
+        },
     }
 }
 
@@ -37,14 +46,49 @@ export default async function GPUPage({ params }: Props) {
     const retailerLinks = RETAILER_URLS[slug] || {}
     const priceHistory = getPriceHistory(slug)
     const priceStats = getPriceStats(slug, gpu.current_price_usd)
+    const retailerNames = Object.keys(retailerLinks).map(r => RETAILER_LABELS[r] || r)
+    const savings = gpu.msrp_usd - gpu.current_price_usd
+    const savingsPercent = gpu.msrp_usd > 0 ? Math.round((savings / gpu.msrp_usd) * 100) : 0
 
     // Build retailer offers for schema
     const retailerOffers = Object.entries(retailerLinks).map(([retailer, url]) => ({
         retailer: RETAILER_LABELS[retailer] || retailer,
-        price: gpu.msrp_usd, // Using MSRP as fallback; ideally fetch real prices
+        price: gpu.current_price_usd,
         availability: 'InStock' as const,
         url: url as string
     }));
+
+    // Generate content based on GPU specs
+    const getUseCase = () => {
+        if (gpu.vram_gb >= 24) return 'ideal for 4K gaming, VR, and professional content creation including video editing and 3D rendering'
+        if (gpu.vram_gb >= 16) return 'perfect for high-refresh 1440p gaming, 4K entry-level gaming, and content creation workflows'
+        if (gpu.vram_gb >= 12) return 'great for 1440p gaming at high settings, streaming, and light content creation'
+        if (gpu.vram_gb >= 8) return 'suitable for 1080p and 1440p gaming at medium to high settings, esports, and general productivity'
+        return 'good for 1080p gaming and everyday computing tasks'
+    }
+
+    const getPowerAdvice = () => {
+        if (gpu.tdp_watts >= 400) return 'requires a high-end 850W+ power supply with robust cooling'
+        if (gpu.tdp_watts >= 300) return 'needs a 750W+ power supply and adequate case ventilation'
+        if (gpu.tdp_watts >= 200) return 'works with a 650W+ power supply in most systems'
+        return 'efficient enough for 550W power supplies in standard builds'
+    }
+
+    const getCompetitor = () => {
+        if (gpu.brand === 'nvidia') {
+            if (gpu.vram_gb >= 24) return 'AMD RX 7900 XTX'
+            if (gpu.vram_gb >= 16) return 'AMD RX 7900 XT or RX 7800 XT'
+            if (gpu.vram_gb >= 12) return 'AMD RX 7700 XT'
+            if (gpu.vram_gb >= 8) return 'AMD RX 7600 or RX 6650 XT'
+            return 'AMD RX 6600'
+        } else {
+            if (gpu.vram_gb >= 24) return 'NVIDIA RTX 4090'
+            if (gpu.vram_gb >= 16) return 'NVIDIA RTX 4080 or RTX 4070 Ti Super'
+            if (gpu.vram_gb >= 12) return 'NVIDIA RTX 4070'
+            if (gpu.vram_gb >= 8) return 'NVIDIA RTX 4060 Ti'
+            return 'NVIDIA RTX 4060'
+        }
+    }
 
     return (
         <div className="container" style={{ padding: '48px 24px' }}>
@@ -55,11 +99,21 @@ export default async function GPUPage({ params }: Props) {
                 description={`${gpu.model} - ${gpu.architecture} architecture, ${gpu.vram_gb}GB VRAM, ${gpu.tdp_watts}W TDP`}
                 offers={retailerOffers.length > 0 ? retailerOffers : [{
                     retailer: 'Various Retailers',
-                    price: gpu.msrp_usd,
+                    price: gpu.current_price_usd,
                     availability: 'InStock',
                     url: `https://gpudrip.com/gpu/${slug}`
                 }]}
                 msrp={gpu.msrp_usd}
+            />
+            <GPUFAQSchema
+                gpuName={gpu.model}
+                brand={gpu.brand}
+                vram={gpu.vram_gb}
+                architecture={gpu.architecture}
+                tdp={gpu.tdp_watts}
+                msrp={gpu.msrp_usd}
+                currentPrice={gpu.current_price_usd}
+                retailers={retailerNames}
             />
             <BreadcrumbSchema items={[
                 { name: 'Home', url: '/' },
@@ -97,8 +151,12 @@ export default async function GPUPage({ params }: Props) {
                         </p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>MSRP</div>
-                        <div className="price price--lg" style={{ color: 'var(--text-primary)' }}>${gpu.msrp_usd}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>Current Price</div>
+                        <div className="price price--lg" style={{ color: '#22c55e' }}>${gpu.current_price_usd}</div>
+                        {savings > 0 && (
+                            <div style={{ fontSize: 14, color: '#22c55e', marginTop: 4 }}>Save ${savings} ({savingsPercent}%)</div>
+                        )}
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>MSRP: ${gpu.msrp_usd}</div>
                     </div>
                 </div>
             </section>
@@ -149,7 +207,7 @@ export default async function GPUPage({ params }: Props) {
                         >
                             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{RETAILER_LABELS[retailer] || retailer}</div>
                             <div style={{ fontSize: 20, fontWeight: 700, color: '#22c55e', marginBottom: 8 }}>${gpu.current_price_usd}</div>
-                            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Current price →</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Check price →</div>
                         </a>
                     ))}
                     {Object.keys(retailerLinks).length === 0 && (
@@ -161,7 +219,7 @@ export default async function GPUPage({ params }: Props) {
             </section>
 
             {/* Price Alert CTA */}
-            <section className="card" style={{ background: 'var(--blue-dim)', border: '1px solid var(--blue)' }}>
+            <section className="card" style={{ background: 'var(--blue-dim)', border: '1px solid var(--blue)', marginBottom: 32 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
                     <div>
                         <h3 style={{ marginBottom: 4 }}>🔔 Get Price Alerts</h3>
@@ -176,7 +234,7 @@ export default async function GPUPage({ params }: Props) {
             </section>
 
             {/* Price History */}
-            <section style={{ marginTop: 48 }}>
+            <section style={{ marginBottom: 48 }}>
                 <h2 style={{ marginBottom: 20 }}>Price History</h2>
                 
                 {/* Stats Cards */}
@@ -220,6 +278,64 @@ export default async function GPUPage({ params }: Props) {
                         />
                     </div>
                 )}
+            </section>
+
+            {/* SEO Content Section - 300+ words */}
+            <section className="card" style={{ marginBottom: 32 }}>
+                <h2 style={{ marginBottom: 20 }}>About the {gpu.model}</h2>
+                
+                <div style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                    <p style={{ marginBottom: 16 }}>
+                        The {gpu.model} is {getUseCase()}. Built on {gpu.brand}'s {gpu.architecture} architecture 
+                        and released in {new Date(gpu.release_date).getFullYear()}, this GPU features {gpu.vram_gb}GB of GDDR memory 
+                        and a {gpu.tdp_watts}W TDP, {getPowerAdvice()}.
+                    </p>
+                    
+                    <h3 style={{ color: 'var(--text-primary)', margin: '24px 0 12px', fontSize: 18 }}>Current Pricing & Availability</h3>
+                    <p style={{ marginBottom: 16 }}>
+                        The {gpu.model} is currently available from {retailerNames.length} major retailers: {retailerNames.join(', ')}. 
+                        The best price is ${gpu.current_price_usd}
+                        {savings > 0 ? `, which represents a ${savingsPercent}% savings off the MSRP of $${gpu.msrp_usd}` : `, selling at MSRP of $${gpu.msrp_usd}`}. 
+                        GPU prices fluctuate frequently based on stock levels, cryptocurrency mining demand, and new product launches. 
+                        Prices on GPU Drip are updated regularly to ensure you're seeing the most current deals.
+                    </p>
+                    
+                    <h3 style={{ color: 'var(--text-primary)', margin: '24px 0 12px', fontSize: 18 }}>Should You Buy Now?</h3>
+                    <p style={{ marginBottom: 16 }}>
+                        {savings > 50 
+                            ? `With current savings of $${savings}, now is a great time to buy the ${gpu.model}. `
+                            : `At $${gpu.current_price_usd}, the ${gpu.model} is ${savings > 0 ? 'slightly below' : 'at'} MSRP. `
+                        }
+                        GPU prices typically drop during major sales events like Black Friday and Prime Day, but can spike during 
+                        cryptocurrency booms or when new generations launch. If you're not in a rush, set a price alert on GPU Drip 
+                        to get notified immediately when the price drops below your target.
+                    </p>
+                    
+                    <h3 style={{ color: 'var(--text-primary)', margin: '24px 0 12px', fontSize: 18 }}>{gpu.model} vs {getCompetitor()}</h3>
+                    <p style={{ marginBottom: 16 }}>
+                        The main competitor to the {gpu.model} is the {getCompetitor()}. Both cards target the same price segment 
+                        but offer different strengths. {gpu.brand === 'nvidia' ? 'NVIDIA typically leads in ray tracing performance and DLSS technology, while AMD offers more VRAM for the price' : 'AMD typically offers more VRAM and better price-to-performance ratios, while NVIDIA leads in ray tracing and DLSS support'}. 
+                        Use GPU Drip's comparison tool to see detailed specs side-by-side and determine which GPU offers the best 
+                        value for your specific needs.
+                    </p>
+                    
+                    <h3 style={{ color: 'var(--text-primary)', margin: '24px 0 12px', fontSize: 18 }}>Power Supply Requirements</h3>
+                    <p>
+                        The {gpu.model} has a {gpu.tdp_watts}W TDP (Thermal Design Power). For optimal performance and stability, 
+                        {gpu.tdp_watts <= 200 
+                            ? 'a 550W-650W power supply is sufficient for most builds' 
+                            : gpu.tdp_watts <= 300 
+                                ? 'NVIDIA/AMD recommends a 750W power supply' 
+                                : 'you\'ll need an 850W or higher power supply with proper cooling'
+                        }. 
+                        Make sure your PSU has the correct power connectors (usually {gpu.tdp_watts >= 300 ? '2x 8-pin or 12VHPWR' : '1x 8-pin or 6-pin'}). 
+                        Undervolting can reduce power consumption by 10-20% while maintaining performance.
+                    </p>
+                </div>
+                
+                <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)' }}>
+                    Prices tracked across {retailerNames.length} retailers • Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </div>
             </section>
         </div>
     )
