@@ -1,6 +1,35 @@
 import Link from 'next/link'
+import { JsonLd } from '@/components/schema/json-ld'
 
 export const dynamic = 'force-static'
+
+export const metadata = {
+  title: 'Gpu Cooling Guide 2026 | GPU Drip',
+  description: 'Comprehensive guide and analysis for Gpu Cooling Guide 2026. Find pricing, specs, and where to buy.',
+  openGraph: {
+    title: 'Gpu Cooling Guide 2026 | GPU Drip',
+    description: 'Comprehensive guide and analysis for Gpu Cooling Guide 2026. Find pricing, specs, and where to buy.',
+    type: 'article',
+  }
+}
+
+const articleSchema = {
+    "@context": "https://schema.org" as const,
+    "@type": "Article" as const,
+    "headline": "Gpu Cooling Guide 2026 | GPU Drip",
+    "description": "Comprehensive guide and analysis for Gpu Cooling Guide 2026. Find pricing, specs, and where to buy.",
+    "image": "/og-image.svg",
+    "author": {
+      "@type": "Organization" as const,
+      "name": "GPU Drip"
+    },
+    "publisher": {
+      "@type": "Organization" as const,
+      "name": "GPU Drip"
+    },
+    "datePublished": "2026-02-01",
+    "dateModified": "2026-03-11"
+  };
 
 export default function Page() {
   return (
@@ -11,6 +40,7 @@ export default function Page() {
           <span style={{ fontSize: 20, fontWeight: 700, color: '#f0f0f0' }}>GPUDrip</span>
         </Link>
       </header>
+      <JsonLd data={articleSchema} />
       <article style={{ maxWidth: '800px', margin: '0 auto', padding: '48px 24px' }}>
         <header style={{ marginBottom: 32 }}>
           <span style={{ color: '#22c55e', fontSize: 14 }}>Guide • March 2026 • 8 min read</span>

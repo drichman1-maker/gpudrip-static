@@ -1,6 +1,35 @@
 import Link from 'next/link'
+import { JsonLd } from '@/components/schema/json-ld'
 
 export const dynamic = 'force-static'
+
+export const metadata = {
+  title: 'Rtx 5070 Ti Vs Rx 9070 Xt | GPU Drip',
+  description: 'Comprehensive guide and analysis for Rtx 5070 Ti Vs Rx 9070 Xt. Find pricing, specs, and where to buy.',
+  openGraph: {
+    title: 'Rtx 5070 Ti Vs Rx 9070 Xt | GPU Drip',
+    description: 'Comprehensive guide and analysis for Rtx 5070 Ti Vs Rx 9070 Xt. Find pricing, specs, and where to buy.',
+    type: 'article',
+  }
+}
+
+const articleSchema = {
+    "@context": "https://schema.org" as const,
+    "@type": "Article" as const,
+    "headline": "Rtx 5070 Ti Vs Rx 9070 Xt | GPU Drip",
+    "description": "Comprehensive guide and analysis for Rtx 5070 Ti Vs Rx 9070 Xt. Find pricing, specs, and where to buy.",
+    "image": "/og-image.svg",
+    "author": {
+      "@type": "Organization" as const,
+      "name": "GPU Drip"
+    },
+    "publisher": {
+      "@type": "Organization" as const,
+      "name": "GPU Drip"
+    },
+    "datePublished": "2026-02-01",
+    "dateModified": "2026-03-11"
+  };
 
 export default function Page() {
   return (
@@ -20,6 +49,7 @@ export default function Page() {
                 </div>
             </div>
         </header>
+      <JsonLd data={articleSchema} />
 
         <div style={{ background: 'rgba(255,255,255,0.05)', padding: '40px', borderRadius: '20px', marginBottom: '40px', border: '1px solid rgba(255,255,255,0.1)' }}>
             <h2>The Mid-Range Showdown</h2>

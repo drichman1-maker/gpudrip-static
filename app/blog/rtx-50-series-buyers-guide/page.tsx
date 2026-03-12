@@ -1,6 +1,35 @@
 import Link from 'next/link'
+import { JsonLd } from '@/components/schema/json-ld'
 
 export const dynamic = 'force-static'
+
+export const metadata = {
+  title: 'Rtx 50 Series Buyers Guide | GPU Drip',
+  description: 'Comprehensive guide and analysis for Rtx 50 Series Buyers Guide. Find pricing, specs, and where to buy.',
+  openGraph: {
+    title: 'Rtx 50 Series Buyers Guide | GPU Drip',
+    description: 'Comprehensive guide and analysis for Rtx 50 Series Buyers Guide. Find pricing, specs, and where to buy.',
+    type: 'article',
+  }
+}
+
+const articleSchema = {
+    "@context": "https://schema.org" as const,
+    "@type": "Article" as const,
+    "headline": "Rtx 50 Series Buyers Guide | GPU Drip",
+    "description": "Comprehensive guide and analysis for Rtx 50 Series Buyers Guide. Find pricing, specs, and where to buy.",
+    "image": "/og-image.svg",
+    "author": {
+      "@type": "Organization" as const,
+      "name": "GPU Drip"
+    },
+    "publisher": {
+      "@type": "Organization" as const,
+      "name": "GPU Drip"
+    },
+    "datePublished": "2026-02-01",
+    "dateModified": "2026-03-11"
+  };
 
 export default function Page() {
   return (
@@ -23,6 +52,7 @@ export default function Page() {
           </div>
         </div>
       </header>
+      <JsonLd data={articleSchema} />
 
       <article style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 24px' }}>
         <header style={{ marginBottom: 48, borderBottom: '1px solid #222', paddingBottom: 32 }}>
@@ -147,7 +177,9 @@ export default function Page() {
             <span style={{ color: '#333', marginRight: 8 }}>|</span>
             <Link href="/blog" style={{ color: '#888', textDecoration: 'none', marginLeft: 8 }}>Blog</Link>
           </p>
-          <p style={{ fontSize: 14, color: '#888', marginTop: 8 }}>© 2026 GPUDrip</p>
+          <p style={{ fontSize: 14, color: '#888', marginTop: 8 }}>© 2026 GPUDrip</p>    
+          <p style={{ fontSize: 12, color: '#666', marginTop: 16 }}><strong>Affiliate Disclosure:</strong> GPU Drip participates in affiliate programs. We may earn commissions from qualifying purchases.</p>
+
         </div>
       </footer>
     </div>

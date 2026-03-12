@@ -1,6 +1,35 @@
 import Link from 'next/link'
+import { JsonLd } from '@/components/schema/json-ld'
 
 export const dynamic = 'force-static'
+
+export const metadata = {
+  title: 'Rtx 5080 Review | GPU Drip',
+  description: 'Comprehensive guide and analysis for Rtx 5080 Review. Find pricing, specs, and where to buy.',
+  openGraph: {
+    title: 'Rtx 5080 Review | GPU Drip',
+    description: 'Comprehensive guide and analysis for Rtx 5080 Review. Find pricing, specs, and where to buy.',
+    type: 'article',
+  }
+}
+
+const articleSchema = {
+    "@context": "https://schema.org" as const,
+    "@type": "Article" as const,
+    "headline": "Rtx 5080 Review | GPU Drip",
+    "description": "Comprehensive guide and analysis for Rtx 5080 Review. Find pricing, specs, and where to buy.",
+    "image": "/og-image.svg",
+    "author": {
+      "@type": "Organization" as const,
+      "name": "GPU Drip"
+    },
+    "publisher": {
+      "@type": "Organization" as const,
+      "name": "GPU Drip"
+    },
+    "datePublished": "2026-02-01",
+    "dateModified": "2026-03-11"
+  };
 
 export default function Page() {
   return (
@@ -23,6 +52,7 @@ export default function Page() {
           </div>
         </div>
       </header>
+      <JsonLd data={articleSchema} />
 
       <article style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 24px' }}>
         <header style={{ marginBottom: 48, borderBottom: '1px solid #222', paddingBottom: 32 }}>
@@ -200,7 +230,9 @@ export default function Page() {
         <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
           <Link href="/" style={{ color: '#666', textDecoration: 'none' }}>GPUs</Link>
           <Link href="/blog" style={{ color: '#666', textDecoration: 'none' }}>Blog</Link>
-          <Link href="/affiliate-disclosure" style={{ color: '#666', textDecoration: 'none' }}>Disclosure</Link>
+          <Link href="/affiliate-disclosure" style={{ color: '#666', textDecoration: 'none' }}>Disclosure</Link>    
+          <p style={{ fontSize: 12, color: '#666', marginTop: 16 }}><strong>Affiliate Disclosure:</strong> GPU Drip participates in affiliate programs. We may earn commissions from qualifying purchases.</p>
+
         </div>
       </footer>
     </div>

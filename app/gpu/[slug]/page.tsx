@@ -75,8 +75,19 @@ export default async function GPUPage({ params }: Props) {
             <section style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
                     <div>
-                        <div className="badge badge--blue" style={{ marginBottom: 12 }}>
-                            {gpu.brand.toUpperCase()} · {gpu.generation}
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                            <span className="badge badge--blue">
+                                {gpu.brand.toUpperCase()} · {gpu.generation}
+                            </span>
+                            {gpu.in_stock ? (
+                                <span className="badge" style={{ background: '#166534', color: '#fff' }}>
+                                    ✓ In Stock
+                                </span>
+                            ) : (
+                                <span className="badge" style={{ background: '#991b1b', color: '#fff' }}>
+                                    ✗ Out of Stock
+                                </span>
+                            )}
                         </div>
                         <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 800, marginBottom: 8 }}>
                             {gpu.model}

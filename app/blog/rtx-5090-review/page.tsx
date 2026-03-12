@@ -1,6 +1,29 @@
 import Link from 'next/link'
+import { JsonLd } from '@/components/schema/json-ld'
 
 export const dynamic = 'force-static'
+
+export const metadata = {
+  title: 'RTX 5090 Review: The Ultimate GPU of 2026? | GPU Drip',
+  description: 'In-depth RTX 5090 review. Performance benchmarks, pricing, availability, and whether it\'s worth the upgrade from RTX 4090.',
+  openGraph: {
+    title: 'RTX 5090 Review: The Ultimate GPU of 2026?',
+    description: 'In-depth RTX 5090 review. Performance benchmarks, pricing, availability, and whether it\'s worth the upgrade.',
+    type: 'article',
+  }
+}
+
+const articleSchema = {
+  "@context": "https://schema.org" as const,
+  "@type": "Article" as const,
+  "headline": "RTX 5090 Review: The Ultimate GPU of 2026?",
+  "description": "In-depth RTX 5090 review. Performance benchmarks, pricing, availability, and whether it's worth the upgrade.",
+  "image": "/og-image.svg",
+  "author": { "@type": "Organization" as const, "name": "GPU Drip" },
+  "publisher": { "@type": "Organization" as const, "name": "GPU Drip" },
+  "datePublished": "2026-02-01",
+  "dateModified": "2026-03-11"
+}
 
 export default function Page() {
   return (
@@ -23,6 +46,8 @@ export default function Page() {
           </div>
         </div>
       </header>
+
+      <JsonLd data={articleSchema} />
 
       <article style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 24px' }}>
         <header style={{ marginBottom: 48, borderBottom: '1px solid #222', paddingBottom: 32 }}>
@@ -160,6 +185,7 @@ export default function Page() {
             <Link href="/blog" style={{ color: '#888', textDecoration: 'none', marginLeft: 8 }}>Blog</Link>
           </p>
           <p style={{ fontSize: 14, color: '#888', marginTop: 8 }}>© 2026 GPUDrip</p>
+          <p style={{ fontSize: 12, color: '#666', marginTop: 16 }}><strong>Affiliate Disclosure:</strong> GPU Drip participates in affiliate programs. We may earn commissions from qualifying purchases.</p>
         </div>
       </footer>
     </div>
