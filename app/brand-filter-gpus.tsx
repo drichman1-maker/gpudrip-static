@@ -2,15 +2,46 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ALL_GPUS, GPU } from '@/lib/gpu-data';
 import { useRouter } from 'next/navigation';
 
-export default function BrandFilterGPUs() {
+export type RetailerData = {
+  name: string
+  url: string
+  price: number
+  inStock: boolean | null
+  verified: boolean
+}
+
+export type GPUWithRetailers = {
+  id: string
+  slug: string
+  model: string
+  brand: 'nvidia' | 'amd'
+  architecture: string
+  generation: string
+  vram_gb: number
+  tdp_watts: number
+  msrp_usd: number
+  current_price_usd: number
+  in_stock: boolean
+  price_change_percent: number
+  release_date: string
+  active: boolean
+  retailers: Record<string, RetailerData>
+  stockStatus: 'in_stock' | 'out_of_stock' | 'unknown'
+  stockVerified: boolean
+}
+
+type BrandFilterGPUsProps = {
+  initialGPUs: GPUWithRetailers[]
+}
+
+export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
     const [brand, setBrand] = useState<'all'|'nvidia'|'amd'>('all');
     const [search, setSearch] = useState('');
     const router = useRouter();
 
-    const filtered = ALL_GPUS.filter(g => {
+    const filtered = initialGPUs.filter(g => {
         const matchesBrand = brand === 'all' || g.brand === brand;
         const matchesSearch = !search || g.model.toLowerCase().includes(search.toLowerCase());
         return matchesBrand && matchesSearch;
@@ -125,7 +156,7 @@ export default function BrandFilterGPUs() {
             
             <div style={{ marginTop: 24, textAlign: 'center' }}>
                 <Link href="/gpu" className="btn btn--ghost">
-                    View all {ALL_GPUS.length} GPUs →
+                    View all {initialGPUs.length} GPUs →
                 </Link>
             </div>
         </section>

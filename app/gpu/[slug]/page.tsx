@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getGPUBySlug, RETAILER_LABELS, RETAILER_URLS, getAllGPUSlugs } from '@/lib/gpu-data'
+import { fetchGPUBySlug, fetchGPUs } from '@/lib/api'
 import { getPriceHistory, getPriceStats } from '@/lib/price-history'
 import { GPUProductSchema, BreadcrumbSchema, GPUFAQSchema } from '@/components/schema'
 import PriceChart from '@/components/price-chart'
@@ -10,18 +10,14 @@ type Props = {
     params: Promise<{ slug: string }>
 }
 
-export function generateStaticParams() {
-    return getAllGPUSlugs().map(slug => ({ slug }))
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params
-    const gpu = getGPUBySlug(slug)
+    const gpu = await fetchGPUBySlug(slug)
     if (!gpu) return { title: 'GPU Not Found' }
-    
+
     const savings = gpu.msrp_usd - gpu.current_price_usd
     const savingsText = savings > 0 ? ` Save $${savings} off MSRP.` : ''
-    
+
     return {
         title: `${gpu.model} Price Tracker & Deals — $${gpu.current_price_usd}`,
         description: `Track ${gpu.model} prices across retailers. Current: $${gpu.current_price_usd} | MSRP: $${gpu.msrp_usd}.${savingsText} ${gpu.vram_gb}GB VRAM, ${gpu.architecture} architecture. Get price alerts.`,
@@ -33,29 +29,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
 }
 
-export const dynamic = 'force-static'
+export const dynamic = 'force-dynamic'
 
 export default async function GPUPage({ params }: Props) {
     const { slug } = await params
-    const gpu = getGPUBySlug(slug)
-    
+    const gpu = await fetchGPUBySlug(slug)
+
     if (!gpu) {
         notFound()
     }
 
-    const retailerLinks = RETAILER_URLS[slug] || {}
+    const retailerData = gpu.retailers || {}
     const priceHistory = getPriceHistory(slug)
     const priceStats = getPriceStats(slug, gpu.current_price_usd)
-    const retailerNames = Object.keys(retailerLinks).map(r => RETAILER_LABELS[r] || r)
+    const retailerNames = Object.values(retailerData).map(r => r.name)
     const savings = gpu.msrp_usd - gpu.current_price_usd
     const savingsPercent = gpu.msrp_usd > 0 ? Math.round((savings / gpu.msrp_usd) * 100) : 0
 
     // Build retailer offers for schema
-    const retailerOffers = Object.entries(retailerLinks).map(([retailer, url]) => ({
-        retailer: RETAILER_LABELS[retailer] || retailer,
-        price: gpu.current_price_usd,
-        availability: 'InStock' as const,
-        url: url as string
+    const retailerOffers = Object.entries(retailerData).map(([retailer, data]) => ({
+        retailer: data.name,
+        price: data.price,
+        availability: (data.inStock ? 'InStock' : 'OutOfStock') as 'InStock' | 'OutOfStock',
+        url: data.url
     }));
 
     // Generate content based on GPU specs
@@ -133,13 +129,23 @@ export default async function GPUPage({ params }: Props) {
                             <span className="badge badge--blue">
                                 {gpu.brand.toUpperCase()} · {gpu.generation}
                             </span>
-                            {gpu.in_stock ? (
-                                <span className="badge" style={{ background: '#166534', color: '#fff' }}>
-                                    ✓ In Stock
-                                </span>
+                            {gpu.stockVerified ? (
+                                gpu.stockStatus === 'in_stock' ? (
+                                    <span className="badge" style={{ background: '#166534', color: '#fff' }}>
+                                        ✓ In Stock
+                                    </span>
+                                ) : gpu.stockStatus === 'out_of_stock' ? (
+                                    <span className="badge" style={{ background: '#991b1b', color: '#fff' }}>
+                                        ✗ Out of Stock
+                                    </span>
+                                ) : (
+                                    <span className="badge" style={{ background: '#ca8a04', color: '#fff' }}>
+                                        ⚠ Check Stock
+                                    </span>
+                                )
                             ) : (
-                                <span className="badge" style={{ background: '#991b1b', color: '#fff' }}>
-                                    ✗ Out of Stock
+                                <span className="badge" style={{ background: '#ca8a04', color: '#fff' }}>
+                                    ⚠ Check Stock
                                 </span>
                             )}
                         </div>
@@ -196,21 +202,34 @@ export default async function GPUPage({ params }: Props) {
             <section style={{ marginBottom: 32 }}>
                 <h2 style={{ marginBottom: 20 }}>Where to Buy</h2>
                 <div className="grid-3">
-                    {Object.entries(retailerLinks).map(([retailer, url]) => (
-                        <a
-                            key={retailer}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="card card--hover"
-                            style={{ display: 'block', textAlign: 'center', padding: 24 }}
-                        >
-                            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{RETAILER_LABELS[retailer] || retailer}</div>
-                            <div style={{ fontSize: 20, fontWeight: 700, color: '#22c55e', marginBottom: 8 }}>${gpu.current_price_usd}</div>
-                            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Check price →</div>
-                        </a>
-                    ))}
-                    {Object.keys(retailerLinks).length === 0 && (
+                    {Object.entries(retailerData).map(([retailer, data]) => {
+                        // Determine stock display based on verified status
+                        const isVerified = data.verified === true
+                        const stockStatus = isVerified
+                            ? (data.inStock ? 'In Stock' : 'Out of Stock')
+                            : 'Check Stock'
+                        const stockColor = isVerified
+                            ? (data.inStock ? '#22c55e' : '#ef4444')
+                            : '#eab308'
+                        
+                        return (
+                            <a
+                                key={retailer}
+                                href={data.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="card card--hover"
+                                style={{ display: 'block', textAlign: 'center', padding: 24 }}
+                            >
+                                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{data.name}</div>
+                                <div style={{ fontSize: 20, fontWeight: 700, color: '#22c55e', marginBottom: 8 }}>${data.price}</div>
+                                <div style={{ fontSize: 12, color: stockColor, fontWeight: 500 }}>
+                                    {isVerified ? (data.inStock ? '✓ In Stock' : '✗ Out of Stock') : '⚠ Check Stock'}
+                                </div>
+                            </a>
+                        )
+                    })}
+                    {Object.keys(retailerData).length === 0 && (
                         <div className="card" style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
                             Retailer links coming soon
                         </div>

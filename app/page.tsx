@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ALL_GPUS } from '@/lib/gpu-data'
+import { fetchGPUs } from '@/lib/api'
 import BrandFilterGPUs from './brand-filter-gpus'
 
 export const metadata: Metadata = {
@@ -8,9 +8,11 @@ export const metadata: Metadata = {
     description: 'Track RTX 5090, RTX 5080, RX 9070 XT prices in real time. See deals, stock availability, and price history across Best Buy, Amazon, Newegg and more.',
 }
 
-export const dynamic = 'force-static'
+export const dynamic = 'force-dynamic'
 
-export default function HomePage() {
+export default async function HomePage() {
+    const gpus = await fetchGPUs()
+    
     return (
         <div>
             {/* Hero */}
@@ -45,9 +47,9 @@ export default function HomePage() {
                 <div className="container">
                     <div style={{ display: 'flex', gap: 48, flexWrap: 'wrap' }}>
                         {[
-                            { label: 'GPUs Tracked', value: ALL_GPUS.length.toString() },
-                            { label: 'Active Deals', value: '—' },
-                            { label: 'Retailers', value: '4' },
+                            { label: 'GPUs Tracked', value: gpus.length.toString() },
+                            { label: 'Active Deals', value: gpus.filter(g => g.price_change_percent < 0).length.toString() },
+                            { label: 'Retailers', value: '8' },
                             { label: 'Last Updated', value: 'Live' },
                         ].map(({ label, value }) => (
                             <div key={label} className="stat">
@@ -60,7 +62,7 @@ export default function HomePage() {
             </section>
 
             {/* Featured GPUs with Brand Filter */}
-            <BrandFilterGPUs />
+            <BrandFilterGPUs initialGPUs={gpus} />
         </div>
     )
 }
