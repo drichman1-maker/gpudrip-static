@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { fetchGPUs } from '@/lib/api'
+import { ALL_GPUS } from '@/lib/gpu-data'
 import GPUListingClient from './gpu-listing-client'
 
 export const metadata: Metadata = {
@@ -7,9 +7,6 @@ export const metadata: Metadata = {
     description: 'Browse all 22 GPUs with specs, MSRPs, and retailer links. RTX 5090, RTX 5080, RX 9070 XT and more.',
 }
 
-export const dynamic = 'force-dynamic'
-
-export default async function GPUListingPage() {
-    const gpus = await fetchGPUs()
-    return <GPUListingClient initialGPUs={gpus} />
+export default function GPUListingPage() {
+    return <GPUListingClient initialGPUs={ALL_GPUS.filter(g => g.active) as any} />
 }

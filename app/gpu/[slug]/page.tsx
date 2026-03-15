@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { fetchGPUBySlug, fetchGPUs } from '@/lib/api'
+import { ALL_GPUS } from '@/lib/gpu-data'
 import { getPriceHistory, getPriceStats } from '@/lib/price-history'
 import { GPUProductSchema, BreadcrumbSchema, GPUFAQSchema } from '@/components/schema'
 import PriceChart from '@/components/price-chart'
@@ -10,9 +10,13 @@ type Props = {
     params: Promise<{ slug: string }>
 }
 
+export async function generateStaticParams() {
+    return ALL_GPUS.filter(g => g.active).map(gpu => ({ slug: gpu.slug }))
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params
-    const gpu = await fetchGPUBySlug(slug)
+    const gpu = ALL_GPUS.find(g => g.slug === slug)
     if (!gpu) return { title: 'GPU Not Found' }
 
     const savings = gpu.msrp_usd - gpu.current_price_usd
@@ -29,17 +33,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
 }
 
-export const dynamic = 'force-dynamic'
-
 export default async function GPUPage({ params }: Props) {
     const { slug } = await params
-    const gpu = await fetchGPUBySlug(slug)
+    const gpu = ALL_GPUS.find(g => g.slug === slug)
 
     if (!gpu) {
         notFound()
     }
 
-    const retailerData = gpu.retailers || {}
+    // Transform retailer_prices to retailers format
+    const retailerData = gpu.retailer_prices ? Object.entries(gpu.retailer_prices).reduce((acc, [key, data]) => {
+        acc[key] = {
+            name: key.charAt(0).toUpperCase() + key.slice(1),
+            url: data.url,
+            price: data.price,
+            inStock: data.in_stock,
+            verified: data.verified || false
+        }
+        return acc
+    }, {} as Record<string, any>) : {}
     const priceHistory = getPriceHistory(slug)
     const priceStats = getPriceStats(slug, gpu.current_price_usd)
     const retailerNames = Object.values(retailerData).map(r => r.name)
@@ -129,23 +141,13 @@ export default async function GPUPage({ params }: Props) {
                             <span className="badge badge--blue">
                                 {gpu.brand.toUpperCase()} · {gpu.generation}
                             </span>
-                            {gpu.stockVerified ? (
-                                gpu.stockStatus === 'in_stock' ? (
-                                    <span className="badge" style={{ background: '#166534', color: '#fff' }}>
-                                        ✓ In Stock
-                                    </span>
-                                ) : gpu.stockStatus === 'out_of_stock' ? (
-                                    <span className="badge" style={{ background: '#991b1b', color: '#fff' }}>
-                                        ✗ Out of Stock
-                                    </span>
-                                ) : (
-                                    <span className="badge" style={{ background: '#ca8a04', color: '#fff' }}>
-                                        ⚠ Check Stock
-                                    </span>
-                                )
+                            {gpu.in_stock ? (
+                                <span className="badge" style={{ background: '#166534', color: '#fff' }}>
+                                    ✓ In Stock
+                                </span>
                             ) : (
-                                <span className="badge" style={{ background: '#ca8a04', color: '#fff' }}>
-                                    ⚠ Check Stock
+                                <span className="badge" style={{ background: '#991b1b', color: '#fff' }}>
+                                    ✗ Out of Stock
                                 </span>
                             )}
                         </div>
