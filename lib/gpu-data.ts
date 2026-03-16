@@ -19,7 +19,7 @@ export type GPU = {
   id: string
   slug: string
   model: string
-  brand: 'nvidia' | 'amd'
+  brand: 'nvidia' | 'amd' | 'intel'
   architecture: string
   generation: string
   vram_gb: number
@@ -101,6 +101,24 @@ export const ALL_GPUS: GPU[] = [
   { id: 'rx-7800-xt', slug: 'rx-7800-xt', model: 'RX 7800 XT', brand: 'amd', architecture: 'RDNA 3', generation: 'RX 7000', vram_gb: 16, tdp_watts: 263, msrp_usd: 499, current_price_usd: 479, in_stock: true, price_change_percent: -4, release_date: '2023-09-06', active: true },
   { id: 'rx-7700-xt', slug: 'rx-7700-xt', model: 'RX 7700 XT', brand: 'amd', architecture: 'RDNA 3', generation: 'RX 7000', vram_gb: 12, tdp_watts: 245, msrp_usd: 449, current_price_usd: 419, in_stock: true, price_change_percent: -7, release_date: '2023-09-07', active: true },
   { id: 'rx-7600', slug: 'rx-7600', model: 'RX 7600', brand: 'amd', architecture: 'RDNA 3', generation: 'RX 7000', vram_gb: 8, tdp_watts: 165, msrp_usd: 269, current_price_usd: 259, in_stock: true, price_change_percent: -4, release_date: '2023-05-25', active: true },
+  // NVIDIA RTX 30 Series (Popular)
+  { id: 'rtx-3090', slug: 'rtx-3090', model: 'RTX 3090', brand: 'nvidia', architecture: 'Ampere', generation: 'RTX 3000', vram_gb: 24, tdp_watts: 350, msrp_usd: 1499, current_price_usd: 999, in_stock: true, price_change_percent: -33, release_date: '2020-09-24', active: true },
+  { id: 'rtx-3080-ti', slug: 'rtx-3080-ti', model: 'RTX 3080 Ti', brand: 'nvidia', architecture: 'Ampere', generation: 'RTX 3000', vram_gb: 12, tdp_watts: 350, msrp_usd: 1199, current_price_usd: 799, in_stock: true, price_change_percent: -33, release_date: '2021-06-03', active: true },
+  { id: 'rtx-3080', slug: 'rtx-3080', model: 'RTX 3080', brand: 'nvidia', architecture: 'Ampere', generation: 'RTX 3000', vram_gb: 10, tdp_watts: 320, msrp_usd: 699, current_price_usd: 549, in_stock: true, price_change_percent: -21, release_date: '2020-09-17', active: true },
+  { id: 'rtx-3070-ti', slug: 'rtx-3070-ti', model: 'RTX 3070 Ti', brand: 'nvidia', architecture: 'Ampere', generation: 'RTX 3000', vram_gb: 8, tdp_watts: 290, msrp_usd: 599, current_price_usd: 449, in_stock: true, price_change_percent: -25, release_date: '2021-05-31', active: true },
+  { id: 'rtx-3070', slug: 'rtx-3070', model: 'RTX 3070', brand: 'nvidia', architecture: 'Ampere', generation: 'RTX 3000', vram_gb: 8, tdp_watts: 220, msrp_usd: 499, current_price_usd: 379, in_stock: true, price_change_percent: -24, release_date: '2020-10-29', active: true },
+  { id: 'rtx-3060-ti', slug: 'rtx-3060-ti', model: 'RTX 3060 Ti', brand: 'nvidia', architecture: 'Ampere', generation: 'RTX 3000', vram_gb: 8, tdp_watts: 200, msrp_usd: 399, current_price_usd: 329, in_stock: true, price_change_percent: -18, release_date: '2020-12-02', active: true },
+  { id: 'rtx-3060', slug: 'rtx-3060', model: 'RTX 3060', brand: 'nvidia', architecture: 'Ampere', generation: 'RTX 3000', vram_gb: 12, tdp_watts: 170, msrp_usd: 329, current_price_usd: 299, in_stock: true, price_change_percent: -9, release_date: '2021-02-25', active: true },
+  // AMD RX 6000 Series (Popular)
+  { id: 'rx-6900-xt', slug: 'rx-6900-xt', model: 'RX 6900 XT', brand: 'amd', architecture: 'RDNA 2', generation: 'RX 6000', vram_gb: 16, tdp_watts: 300, msrp_usd: 999, current_price_usd: 649, in_stock: true, price_change_percent: -35, release_date: '2020-12-08', active: true },
+  { id: 'rx-6800-xt', slug: 'rx-6800-xt', model: 'RX 6800 XT', brand: 'amd', architecture: 'RDNA 2', generation: 'RX 6000', vram_gb: 16, tdp_watts: 300, msrp_usd: 649, current_price_usd: 499, in_stock: true, price_change_percent: -23, release_date: '2020-11-18', active: true },
+  { id: 'rx-6800', slug: 'rx-6800', model: 'RX 6800', brand: 'amd', architecture: 'RDNA 2', generation: 'RX 6000', vram_gb: 16, tdp_watts: 250, msrp_usd: 579, current_price_usd: 449, in_stock: true, price_change_percent: -22, release_date: '2020-11-18', active: true },
+  { id: 'rx-6700-xt', slug: 'rx-6700-xt', model: 'RX 6700 XT', brand: 'amd', architecture: 'RDNA 2', generation: 'RX 6000', vram_gb: 12, tdp_watts: 230, msrp_usd: 479, current_price_usd: 329, in_stock: true, price_change_percent: -31, release_date: '2021-03-03', active: true },
+  { id: 'rx-6600-xt', slug: 'rx-6600-xt', model: 'RX 6600 XT', brand: 'amd', architecture: 'RDNA 2', generation: 'RX 6000', vram_gb: 8, tdp_watts: 160, msrp_usd: 379, current_price_usd: 279, in_stock: true, price_change_percent: -26, release_date: '2021-07-30', active: true },
+  { id: 'rx-6600', slug: 'rx-6600', model: 'RX 6600', brand: 'amd', architecture: 'RDNA 2', generation: 'RX 6000', vram_gb: 8, tdp_watts: 132, msrp_usd: 329, current_price_usd: 219, in_stock: true, price_change_percent: -33, release_date: '2021-10-13', active: true },
+  // Intel Arc (Emerging)
+  { id: 'arc-a770', slug: 'arc-a770', model: 'Arc A770', brand: 'intel', architecture: 'Alchemist', generation: 'Arc', vram_gb: 16, tdp_watts: 225, msrp_usd: 329, current_price_usd: 299, in_stock: true, price_change_percent: -9, release_date: '2022-10-12', active: true },
+  { id: 'arc-a750', slug: 'arc-a750', model: 'Arc A750', brand: 'intel', architecture: 'Alchemist', generation: 'Arc', vram_gb: 8, tdp_watts: 190, msrp_usd: 249, current_price_usd: 229, in_stock: true, price_change_percent: -8, release_date: '2022-10-12', active: true },
 ]
 
 export function getGPUBySlug(slug: string): GPU | undefined {
@@ -154,6 +172,7 @@ export const RETAILER_LABELS: Record<string, string> = {
   adorama: 'Adorama',
   antonline: 'Antonline',
   cdw: 'CDW',
+  intel: '#0071c5',
 }
 
 export const RETAILER_COLORS: Record<string, string> = {
@@ -238,6 +257,84 @@ RETAILER_URLS['rtx-4080'] = {
   amazon: 'https://www.amazon.com/s?k=RTX+4080&ref=nb_sb_noss',
   bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rtx+4080',
   newegg: 'https://www.newegg.com/p/pl?d=rtx+4080',
+}
+// RTX 30 Series
+RETAILER_URLS['rtx-3090'] = {
+  amazon: 'https://www.amazon.com/s?k=RTX+3090&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rtx+3090',
+  newegg: 'https://www.newegg.com/p/pl?d=rtx+3090',
+}
+RETAILER_URLS['rtx-3080-ti'] = {
+  amazon: 'https://www.amazon.com/s?k=RTX+3080+Ti&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rtx+3080+ti',
+  newegg: 'https://www.newegg.com/p/pl?d=rtx+3080+ti',
+}
+RETAILER_URLS['rtx-3080'] = {
+  amazon: 'https://www.amazon.com/s?k=RTX+3080&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rtx+3080',
+  newegg: 'https://www.newegg.com/p/pl?d=rtx+3080',
+}
+RETAILER_URLS['rtx-3070-ti'] = {
+  amazon: 'https://www.amazon.com/s?k=RTX+3070+Ti&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rtx+3070+ti',
+  newegg: 'https://www.newegg.com/p/pl?d=rtx+3070+ti',
+}
+RETAILER_URLS['rtx-3070'] = {
+  amazon: 'https://www.amazon.com/s?k=RTX+3070&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rtx+3070',
+  newegg: 'https://www.newegg.com/p/pl?d=rtx+3070',
+}
+RETAILER_URLS['rtx-3060-ti'] = {
+  amazon: 'https://www.amazon.com/s?k=RTX+3060+Ti&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rtx+3060+ti',
+  newegg: 'https://www.newegg.com/p/pl?d=rtx+3060+ti',
+}
+RETAILER_URLS['rtx-3060'] = {
+  amazon: 'https://www.amazon.com/s?k=RTX+3060&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rtx+3060',
+  newegg: 'https://www.newegg.com/p/pl?d=rtx+3060',
+}
+// AMD RX 6000 Series
+RETAILER_URLS['rx-6900-xt'] = {
+  amazon: 'https://www.amazon.com/s?k=RX+6900+XT&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rx+6900+xt',
+  newegg: 'https://www.newegg.com/p/pl?d=rx+6900+xt',
+}
+RETAILER_URLS['rx-6800-xt'] = {
+  amazon: 'https://www.amazon.com/s?k=RX+6800+XT&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rx+6800+xt',
+  newegg: 'https://www.newegg.com/p/pl?d=rx+6800+xt',
+}
+RETAILER_URLS['rx-6800'] = {
+  amazon: 'https://www.amazon.com/s?k=RX+6800&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rx+6800',
+  newegg: 'https://www.newegg.com/p/pl?d=rx+6800',
+}
+RETAILER_URLS['rx-6700-xt'] = {
+  amazon: 'https://www.amazon.com/s?k=RX+6700+XT&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rx+6700+xt',
+  newegg: 'https://www.newegg.com/p/pl?d=rx+6700+xt',
+}
+RETAILER_URLS['rx-6600-xt'] = {
+  amazon: 'https://www.amazon.com/s?k=RX+6600+XT&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rx+6600+xt',
+  newegg: 'https://www.newegg.com/p/pl?d=rx+6600+xt',
+}
+RETAILER_URLS['rx-6600'] = {
+  amazon: 'https://www.amazon.com/s?k=RX+6600&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=rx+6600',
+  newegg: 'https://www.newegg.com/p/pl?d=rx+6600',
+}
+// Intel Arc
+RETAILER_URLS['arc-a770'] = {
+  amazon: 'https://www.amazon.com/s?k=Arc+A770&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=arc+a770',
+  newegg: 'https://www.newegg.com/p/pl?d=arc+a770',
+}
+RETAILER_URLS['arc-a750'] = {
+  amazon: 'https://www.amazon.com/s?k=Arc+A750&ref=nb_sb_noss',
+  bestbuy: 'https://www.bestbuy.com/site/searchpage.jsp?st=arc+a750',
+  newegg: 'https://www.newegg.com/p/pl?d=arc+a750',
 }
 
 // Helper function to add new retailers to existing GPU entries

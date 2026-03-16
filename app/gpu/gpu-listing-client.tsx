@@ -28,6 +28,24 @@ const BENCHMARKS: Record<string, { timeSpy: number; fps1080p: number; fps1440p: 
     'rx-7700-xt': { timeSpy: 15500, fps1080p: 118, fps1440p: 92 },
     'rx-7600': { timeSpy: 10500, fps1080p: 85, fps1440p: 65 },
     'rx-7600-xt': { timeSpy: 12500, fps1080p: 98, fps1440p: 75 },
+    // RTX 30 Series
+    'rtx-3090': { timeSpy: 19500, fps1080p: 145, fps1440p: 110 },
+    'rtx-3080-ti': { timeSpy: 18500, fps1080p: 138, fps1440p: 105 },
+    'rtx-3080': { timeSpy: 17500, fps1080p: 130, fps1440p: 98 },
+    'rtx-3070-ti': { timeSpy: 15500, fps1080p: 115, fps1440p: 88 },
+    'rtx-3070': { timeSpy: 14500, fps1080p: 108, fps1440p: 82 },
+    'rtx-3060-ti': { timeSpy: 12000, fps1080p: 90, fps1440p: 68 },
+    'rtx-3060': { timeSpy: 10500, fps1080p: 78, fps1440p: 58 },
+    // AMD RX 6000 Series
+    'rx-6900-xt': { timeSpy: 19500, fps1080p: 145, fps1440p: 112 },
+    'rx-6800-xt': { timeSpy: 18000, fps1080p: 135, fps1440p: 102 },
+    'rx-6800': { timeSpy: 16500, fps1080p: 122, fps1440p: 92 },
+    'rx-6700-xt': { timeSpy: 14500, fps1080p: 108, fps1440p: 82 },
+    'rx-6600-xt': { timeSpy: 11500, fps1080p: 85, fps1440p: 65 },
+    'rx-6600': { timeSpy: 9500, fps1080p: 70, fps1440p: 52 },
+    // Intel Arc
+    'arc-a770': { timeSpy: 13500, fps1080p: 100, fps1440p: 75 },
+    'arc-a750': { timeSpy: 12000, fps1080p: 88, fps1440p: 65 },
 }
 
 // Get tier from GPU model
@@ -57,7 +75,7 @@ const VRAM_OPTIONS = ['all', '8', '12', '16', '24'];
 const TIER_OPTIONS = ['all', 'entry', 'mid', 'high'];
 
 export default function GPUListingClient({ initialGPUs }: { initialGPUs: GPU[] }) {
-    const [brand, setBrand] = useState<'all'|'nvidia'|'amd'>('all')
+    const [brand, setBrand] = useState<'all'|'nvidia'|'amd'|'intel'>('all')
     const [search, setSearch] = useState('')
     const [sort, setSort] = useState<'price-asc'|'price-desc'|'name'|'benchmark' | 'fps'>('name')
     const [inStockOnly, setInStockOnly] = useState(false)
