@@ -1,9 +1,10 @@
 // API client for GPU Drip backend
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://gpudrip-backend-icy-night-2201.fly.dev'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://gpudrip-backend.fly.dev'
 
 export type RetailerData = {
   name: string
   url: string
+  affiliateUrl?: string | null
   price: number
   inStock: boolean | null
   verified: boolean
@@ -13,7 +14,7 @@ export type GPUWithRetailers = {
   id: string
   slug: string
   model: string
-  brand: 'nvidia' | 'amd'
+  brand: 'nvidia' | 'amd' | 'intel'
   architecture: string
   generation: string
   vram_gb: number

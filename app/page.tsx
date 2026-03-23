@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ALL_GPUS } from '@/lib/gpu-data'
+import { fetchGPUs } from '@/lib/api'
 import BrandFilterGPUs from './brand-filter-gpus'
 
 export const metadata: Metadata = {
@@ -8,9 +8,13 @@ export const metadata: Metadata = {
     description: 'Track RTX 5090, RTX 5080, RX 9070 XT prices in real time. See deals, stock availability, and price history across Best Buy, Amazon, Newegg and more.',
 }
 
-export default function HomePage() {
-    const gpus = ALL_GPUS.filter(g => g.active)
-    
+// Static export for Vercel
+export const dynamic = 'force-static'
+
+export default async function HomePage() {
+    const gpus = await fetchGPUs()
+    const activeGPUs = gpus.filter(g => g.active)
+
     return (
         <div>
             {/* Hero */}
@@ -45,10 +49,11 @@ export default function HomePage() {
                 <div className="container">
                     <div style={{ display: 'flex', gap: 48, flexWrap: 'wrap' }}>
                         {[
-                            { label: 'GPUs Tracked', value: gpus.length.toString() },
-                            { label: 'Active Deals', value: gpus.filter(g => g.price_change_percent < 0).length.toString() },
+                            { label: 'GPUs Tracked', value: activeGPUs.length.toString() },
+                            { label: 'Active Deals', value: activeGPUs.filter(g => g.price_change_percent < 0).length.toString() },
                             { label: 'Retailers', value: '8' },
                             { label: 'Last Updated', value: 'Live' },
+                            { label: 'Data Source', value: 'API' },
                         ].map(({ label, value }) => (
                             <div key={label} className="stat">
                                 <div className="stat__label">{label}</div>
@@ -60,7 +65,7 @@ export default function HomePage() {
             </section>
 
             {/* Featured GPUs with Brand Filter */}
-            <BrandFilterGPUs initialGPUs={gpus as any} />
+            <BrandFilterGPUs initialGPUs={activeGPUs as any} />
         </div>
     )
 }

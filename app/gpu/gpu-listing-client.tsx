@@ -166,6 +166,38 @@ export default function GPUListingClient({ initialGPUs }: { initialGPUs: GPU[] }
                 </button>
             </div>
 
+            {/* Brand Filter */}
+            <div style={{ marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: '#888', marginRight: 8 }}>Brand:</span>
+                {[
+                    { id: 'all', label: 'All', color: '#888' },
+                    { id: 'nvidia', label: 'NVIDIA', color: '#22c55e' },
+                    { id: 'amd', label: 'AMD', color: '#ef4444' },
+                    { id: 'intel', label: 'Intel', color: '#3b82f6' },
+                ].map(b => (
+                    <button
+                        key={b.id}
+                        onClick={() => setBrand(b.id as any)}
+                        style={{
+                            padding: '6px 16px',
+                            fontSize: 13,
+                            borderRadius: 20,
+                            border: 'none',
+                            background: brand === b.id ? b.color : '#1a1a1a',
+                            color: brand === b.id ? '#000' : b.color,
+                            cursor: 'pointer',
+                            fontWeight: brand === b.id ? 700 : 500,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            transition: 'all 0.2s',
+                            boxShadow: brand === b.id ? `0 0 12px ${b.color}40` : 'none',
+                        }}
+                    >
+                        {b.label}
+                    </button>
+                ))}
+            </div>
+
             {/* VRAM Filter */}
             <div style={{ marginBottom: 20, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13, color: '#888', marginRight: 8 }}>VRAM:</span>

@@ -2,41 +2,60 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ALL_GPUS, GPU } from '@/lib/gpu-data'
-import { 
-  Check, 
-  ChevronLeft, 
-  ExternalLink, 
-  X, 
-  Share2, 
-  Cpu, 
-  Zap, 
-  HardDrive, 
+import { fetchGPUs, GPUWithRetailers } from '@/lib/api'
+import {
+  Check,
+  ChevronLeft,
+  X,
+  Share2,
+  Cpu,
+  HardDrive,
+  Zap,
   Calendar,
-  Package,
   DollarSign,
   AlertCircle,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  Award,
+  Gauge,
+  Thermometer,
+  Monitor
 } from 'lucide-react'
 
-const RETAILER_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  amazon: { label: 'Amazon', color: 'text-orange-400', bg: 'bg-orange-500/10' },
-  bestbuy: { label: 'Best Buy', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  newegg: { label: 'Newegg', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-  bh_photo: { label: 'B&H Photo', color: 'text-red-400', bg: 'bg-red-500/10' },
-  micro_center: { label: 'Micro Center', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+const RETAILER_CONFIG: Record<string, { label: string; color: string }> = {
+  amazon: { label: 'Amazon', color: '#ff9900' },
+  bestbuy: { label: 'Best Buy', color: '#0046be' },
+  newegg: { label: 'Newegg', color: '#f7c22f' },
+  bh_photo: { label: 'B&H Photo', color: '#e11d48' },
+  micro_center: { label: 'Micro Center', color: '#a855f7' },
+  adorama: { label: 'Adorama', color: '#ec4899' },
+  antonline: { label: 'Antonline', color: '#06b6d4' },
+  cdw: { label: 'CDW', color: '#6366f1' },
+}
+
+const BRAND_COLORS = {
+  nvidia: { bg: '#166534', text: '#22c55e', border: '#22c55e' },
+  amd: { bg: '#7f1d1d', text: '#f87171', border: '#ef4444' },
+  intel: { bg: '#1e3a8a', text: '#60a5fa', border: '#3b82f6' },
 }
 
 export default function CompareClient() {
   const [selected, setSelected] = useState<string[]>([])
+  const [gpus, setGpus] = useState<GPUWithRetailers[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showShareToast, setShowShareToast] = useState(false)
 
   useEffect(() => {
+    fetchGPUs().then(data => {
+      setGpus(data.filter(g => g.active))
+      setLoading(false)
+    })
+
     const params = new URLSearchParams(window.location.search)
     const compare = params.get('compare')
     if (compare) {
-      const valid = compare.split(',').filter(id => ALL_GPUS.some(g => g.id === id))
-      setSelected(valid.slice(0, 4))
+      const ids = compare.split(',')
+      setSelected(ids.slice(0, 4))
     }
   }, [])
 
@@ -52,7 +71,8 @@ export default function CompareClient() {
     const url = new URL(window.location.href)
     url.searchParams.set('compare', selected.join(','))
     navigator.clipboard.writeText(url.toString())
-    alert('Comparison link copied!')
+    setShowShareToast(true)
+    setTimeout(() => setShowShareToast(false), 2000)
   }
 
   const clearComparison = () => {
@@ -60,355 +80,440 @@ export default function CompareClient() {
     window.history.replaceState({}, '', '/compare')
   }
 
-  const selectedData = ALL_GPUS.filter(g => selected.includes(g.id))
+  const selectedData = gpus.filter(g => selected.includes(g.id))
 
-  const getBestPrice = (gpu: GPU) => {
-    if (!gpu.retailer_prices) {
-      return { price: gpu.current_price_usd, retailer: 'default', in_stock: gpu.in_stock, url: '' }
+  const getBestPrice = (gpu: GPUWithRetailers) => {
+    if (!gpu.retailers) {
+      return { price: gpu.current_price_usd, retailer: 'default', inStock: gpu.in_stock }
     }
-    const prices = Object.entries(gpu.retailer_prices)
+    const prices = Object.entries(gpu.retailers)
       .map(([r, d]) => ({ retailer: r, ...d }))
       .filter(p => p.price > 0)
     if (!prices.length) {
-      return { price: gpu.current_price_usd, retailer: 'default', in_stock: gpu.in_stock, url: '' }
+      return { price: gpu.current_price_usd, retailer: 'default', inStock: gpu.in_stock }
     }
-    const inStock = prices.filter(p => p.in_stock)
+    const inStock = prices.filter(p => p.inStock)
     const pool = inStock.length ? inStock : prices
     return pool.reduce((a, b) => a.price < b.price ? a : b)
   }
 
-  const getTop3Retailers = (gpu: GPU) => {
-    if (!gpu.retailer_prices) return []
-    return Object.entries(gpu.retailer_prices)
-      .map(([retailer, data]) => ({ retailer, ...data }))
-      .filter(p => p.price > 0)
-      .sort((a, b) => a.price - b.price)
-      .slice(0, 3)
+  const getValueScore = (gpu: GPUWithRetailers) => {
+    const price = gpu.current_price_usd
+    const vram = gpu.vram_gb
+    if (price === 0) return 0
+    return ((vram * 100) / price * 100).toFixed(1)
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a]">
+    <main className="min-h-screen" style={{ backgroundColor: '#0a0a0a' }}>
+      {/* Share Toast */}
+      {showShareToast && (
+        <div style={{
+          position: 'fixed',
+          top: 16,
+          right: 16,
+          backgroundColor: '#22c55e',
+          color: 'white',
+          padding: '12px 20px',
+          borderRadius: 8,
+          zIndex: 50,
+          boxShadow: '0 4px 20px rgba(34, 197, 94, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8
+        }}>
+          <Check size={16} />
+          Link copied!
+        </div>
+      )}
+
       {/* Header */}
-      <div className="border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
+      <div style={{ 
+        borderBottom: '1px solid #262626', 
+        backgroundColor: 'rgba(10, 10, 10, 0.95)',
+        backdropFilter: 'blur(10px)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 40
+      }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '20px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
             <div>
               <Link 
                 href="/gpu" 
-                className="text-gray-400 hover:text-white flex items-center gap-2 mb-3 transition-colors text-sm"
+                style={{ color: '#737373', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, textDecoration: 'none' }}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft size={16} />
                 Back to GPUs
               </Link>
-              <h1 className="text-4xl font-bold text-white">Compare GPUs</h1>
-              <p className="text-gray-400 mt-2">Find the best graphics card for your needs</p>
+              <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, color: '#fff' }}>Compare GPUs</h1>
+              <p style={{ margin: '4px 0 0 0', color: '#737373', fontSize: 14 }}>
+                Select up to 4 GPUs to compare side by side
+              </p>
             </div>
             
             {selected.length > 0 && (
-              <div className="flex gap-3">
+              <div style={{ display: 'flex', gap: 12 }}>
                 <button
                   onClick={shareComparison}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10 transition-colors text-sm font-medium"
+                  style={{
+                    padding: '10px 18px',
+                    backgroundColor: '#1a1a1a',
+                    border: '1px solid #333',
+                    borderRadius: 8,
+                    color: '#fff',
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                  }}
                 >
-                  <Share2 className="h-4 w-4" />
+                  <Share2 size={16} />
                   Share
                 </button>
                 <button
                   onClick={clearComparison}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors text-sm font-medium"
+                  style={{
+                    padding: '10px 18px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: 8,
+                    color: '#f87171',
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                  }}
                 >
-                  <X className="h-4 w-4" />
+                  <X size={16} />
                   Clear
                 </button>
               </div>
             )}
           </div>
+
+          {/* Selection Counter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 20 }}>
+            <span style={{ color: '#fff', fontSize: 16, fontWeight: 500 }}>
+              Selected: <span style={{ color: '#737373' }}>{selected.length}/4</span>
+            </span>
+            {selected.length > 0 && (
+              <span style={{ 
+                padding: '4px 12px', 
+                backgroundColor: '#7c3aed20', 
+                color: '#a78bfa',
+                borderRadius: 20,
+                fontSize: 13,
+                fontWeight: 500
+              }}>
+                {selected.length} GPU{selected.length !== 1 ? 's' : ''} selected
+              </span>
+            )}
+            {selected.length === 4 && (
+              <span style={{ color: '#fbbf24', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertCircle size={14} />
+                Maximum reached
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Selection Counter */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-white">
-            Select GPUs <span className="text-gray-500">({selected.length}/4)</span>
-          </h2>
-          {selected.length === 4 && (
-            <span className="text-amber-400 text-sm font-medium">Maximum reached</span>
-          )}
-        </div>
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 24px' }}>
+        {/* GPU Grid */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 60, color: '#666' }}>
+            Loading GPUs...
+          </div>
+        ) : (
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+            gap: 16,
+            marginBottom: selectedData.length > 0 ? 48 : 0
+          }}>
+            {gpus.map(gpu => {
+              const isSelected = selected.includes(gpu.id)
+              const best = getBestPrice(gpu)
+              const diff = ((best.price - gpu.msrp_usd) / gpu.msrp_usd) * 100
+              const brandColors = BRAND_COLORS[gpu.brand]
+              const valueScore = getValueScore(gpu)
+              
+              return (
+                <button
+                  key={gpu.id}
+                  onClick={() => toggle(gpu.id)}
+                  style={{
+                    position: 'relative',
+                    padding: 20,
+                    borderRadius: 12,
+                    border: isSelected ? `2px solid ${brandColors.border}` : '1px solid #262626',
+                    backgroundColor: isSelected ? `${brandColors.bg}40` : '#141414',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.2s',
+                    boxShadow: isSelected ? `0 0 20px ${brandColors.bg}30` : 'none'
+                  }}
+                >
+                  {/* Selection Indicator */}
+                  {isSelected && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 12,
+                      right: 12,
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      backgroundColor: brandColors.border,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Check size={14} color="#000" strokeWidth={3} />
+                    </div>
+                  )}
 
-        {/* GPU Grid - 3 columns for larger cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-12">
-          {ALL_GPUS.filter(g => g.active).map(gpu => {
-            const isSelected = selected.includes(gpu.id)
-            const best = getBestPrice(gpu)
-            const diff = ((best.price - gpu.msrp_usd) / gpu.msrp_usd) * 100
-            const isNvidia = gpu.brand === 'nvidia'
-            
-            return (
-              <button
-                key={gpu.id}
-                onClick={() => toggle(gpu.id)}
-                className={`relative p-5 rounded-xl border-2 text-left transition-all duration-200 ${
-                  isSelected
-                    ? isNvidia 
-                      ? 'border-green-500 bg-green-500/10 shadow-lg shadow-green-500/10' 
-                      : 'border-red-500 bg-red-500/10 shadow-lg shadow-red-500/10'
-                    : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.07]'
-                }`}
-              >
-                {/* Selected Checkmark */}
-                {isSelected && (
-                  <div className={`absolute top-4 right-4 w-6 h-6 rounded-full flex items-center justify-center ${isNvidia ? 'bg-green-500' : 'bg-red-500'}`}>
-                    <Check className="w-4 h-4 text-black" />
+                  {/* Brand Badge */}
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '4px 10px',
+                    borderRadius: 4,
+                    backgroundColor: brandColors.bg,
+                    color: brandColors.text,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: 12
+                  }}>
+                    {gpu.brand}
                   </div>
-                )}
-                
-                {/* Brand */}
-                <div className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider mb-3 ${isNvidia ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                  {isNvidia ? 'NVIDIA' : 'AMD'}
-                </div>
-                
-                {/* Model */}
-                <div className="font-bold text-white text-lg mb-4">
-                  {gpu.model}
-                </div>
-                
-                {/* Price Row */}
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-2xl font-bold text-white">
-                    ${best.price.toLocaleString()}
-                  </span>
-                </div>
-                
-                {/* Price Change */}
-                <div className={`flex items-center gap-1 text-sm mb-4 ${diff > 0 ? 'text-red-400' : diff < 0 ? 'text-green-400' : 'text-gray-500'}`}>
-                  {diff > 0 ? <TrendingUp className="w-4 h-4" /> : diff < 0 ? <TrendingDown className="w-4 h-4" /> : null}
-                  <span className="font-medium">{diff > 0 ? '+' : ''}{diff.toFixed(0)}% vs MSRP</span>
-                </div>
-                
-                {/* Footer */}
-                <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                  <span className="text-gray-400 text-sm">{gpu.vram_gb}GB VRAM</span>
-                  <span className={`flex items-center gap-1.5 text-sm font-medium ${gpu.in_stock ? 'text-green-400' : 'text-red-400'}`}>
-                    <span className={`w-2 h-2 rounded-full ${gpu.in_stock ? 'bg-green-400' : 'bg-red-400'}`} />
-                    {gpu.in_stock ? 'In Stock' : 'Out'}
-                  </span>
-                </div>
-              </button>
-            )
-          })}
-        </div>
+
+                  {/* Model Name */}
+                  <h3 style={{
+                    margin: '0 0 8px 0',
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: '#fff'
+                  }}>
+                    {gpu.model}
+                  </h3>
+
+                  {/* Specs Row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, color: '#737373', fontSize: 13 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <HardDrive size={14} />
+                      {gpu.vram_gb}GB
+                    </span>
+                    <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#444' }} />
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Thermometer size={14} />
+                      {gpu.tdp_watts}W
+                    </span>
+                  </div>
+
+                  {/* Price */}
+                  <div style={{ marginBottom: 8 }}>
+                    <span style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>
+                      ${best.price.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* MSRP Comparison */}
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 4, 
+                    fontSize: 13,
+                    color: diff > 0 ? '#f87171' : diff < 0 ? '#22c55e' : '#737373',
+                    marginBottom: 12
+                  }}>
+                    {diff > 0 ? <TrendingUp size={14} /> : diff < 0 ? <TrendingDown size={14} /> : null}
+                    <span>{diff > 0 ? '+' : ''}{diff.toFixed(0)}% vs MSRP</span>
+                  </div>
+
+                  {/* Footer: Stock + Value */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ 
+                      fontSize: 13, 
+                      color: gpu.in_stock ? '#22c55e' : '#ef4444',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}>
+                      <span style={{ 
+                        width: 6, 
+                        height: 6, 
+                        borderRadius: '50%', 
+                        backgroundColor: gpu.in_stock ? '#22c55e' : '#ef4444' 
+                      }} />
+                      {gpu.in_stock ? 'In Stock' : 'Out of Stock'}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#a855f7' }}>
+                      <Gauge size={14} />
+                      Value: {valueScore}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* Comparison Section */}
         {selectedData.length > 0 && (
-          <div className="space-y-8">
-            
-            {/* Specifications */}
-            <div className="bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden">
-              <div className="px-6 py-5 border-b border-white/10 bg-white/[0.02]">
-                <h2 className="text-xl font-semibold text-white flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                    <Cpu className="h-5 w-5 text-blue-400" />
-                  </div>
-                  Specifications
-                </h2>
+          <div style={{ marginTop: 48 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: 8,
+                background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Award size={20} color="#fff" />
               </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="text-left p-5 text-gray-400 font-medium w-48 bg-[#0a0a0a]">Specification</th>
-                      {selectedData.map(gpu => (
-                        <th key={gpu.id} className="text-left p-5 min-w-[200px] bg-[#0a0a0a]">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-3 h-3 rounded-full ${gpu.brand === 'nvidia' ? 'bg-green-500' : 'bg-red-500'}`} />
-                            <div>
-                              <div className="text-white font-bold text-lg">{gpu.model}</div>
-                              <div className="text-gray-500 text-sm">{gpu.generation}</div>
-                            </div>
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { icon: Cpu, label: 'Architecture', get: (g: GPU) => g.architecture },
-                      { icon: HardDrive, label: 'VRAM', get: (g: GPU) => `${g.vram_gb} GB` },
-                      { icon: Zap, label: 'TDP', get: (g: GPU) => `${g.tdp_watts}W` },
-                      { icon: Calendar, label: 'Release Date', get: (g: GPU) => new Date(g.release_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) },
-                    ].map((row, idx) => (
-                      <tr key={row.label} className={`border-b border-white/10 ${idx % 2 === 1 ? 'bg-white/[0.02]' : ''}`}>
-                        <td className="p-5 text-gray-400 bg-[#0a0a0a]">
-                          <div className="flex items-center gap-3">
-                            <row.icon className="h-4 w-4 text-gray-500" />
-                            {row.label}
-                          </div>
-                        </td>
-                        {selectedData.map(gpu => (
-                          <td key={gpu.id} className="p-5 text-white font-medium">
-                            {row.get(gpu)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                    <tr className="border-b border-white/10 bg-white/[0.02]">
-                      <td className="p-5 text-gray-400 bg-[#0a0a0a]">
-                        <div className="flex items-center gap-3">
-                          <Package className="h-4 w-4 text-gray-500" />
-                          Availability
-                        </div>
-                      </td>
-                      {selectedData.map(gpu => (
-                        <td key={gpu.id} className="p-5">
-                          <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${gpu.in_stock ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-                            <span className={`w-2 h-2 rounded-full ${gpu.in_stock ? 'bg-green-400' : 'bg-red-400'}`} />
-                            {gpu.in_stock ? 'In Stock' : 'Out of Stock'}
-                          </span>
-                        </td>
-                      ))}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <h2 style={{ margin: 0, fontSize: 24, fontWeight: 600, color: '#fff' }}>Comparison</h2>
             </div>
 
-            {/* Pricing */}
-            <div className="bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden">
-              <div className="px-6 py-5 border-b border-white/10 bg-white/[0.02]">
-                <h2 className="text-xl font-semibold text-white flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                    <DollarSign className="h-5 w-5 text-green-400" />
-                  </div>
-                  Pricing & Availability
-                </h2>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="text-left p-5 text-gray-400 font-medium w-48 bg-[#0a0a0a]">Retailer</th>
-                      {selectedData.map(gpu => (
-                        <th key={gpu.id} className="text-left p-5 min-w-[220px] bg-[#0a0a0a]">
-                          <div className="text-white font-bold text-lg">{gpu.model}</div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {/* Best Price */}
-                    <tr className="border-b border-white/10 bg-green-500/[0.08]">
-                      <td className="p-5 bg-[#0a0a0a]">
-                        <span className="text-green-400 font-semibold flex items-center gap-2">
-                          <TrendingDown className="w-4 h-4" />
-                          Best Price
+            {/* Comparison Cards */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: `repeat(${selectedData.length}, 1fr)`, 
+              gap: 16,
+              marginBottom: 32
+            }}>
+              {selectedData.map(gpu => {
+                const brandColors = BRAND_COLORS[gpu.brand]
+                const best = getBestPrice(gpu)
+                const savings = gpu.msrp_usd - best.price
+                const valueScore = getValueScore(gpu)
+
+                return (
+                  <div key={gpu.id} style={{
+                    backgroundColor: '#141414',
+                    border: `1px solid ${brandColors.border}40`,
+                    borderRadius: 12,
+                    padding: 20,
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 3,
+                      background: `linear-gradient(90deg, ${brandColors.border}, transparent)`
+                    }} />
+
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '4px 10px',
+                      borderRadius: 4,
+                      backgroundColor: brandColors.bg,
+                      color: brandColors.text,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      marginBottom: 12
+                    }}>
+                      {gpu.brand}
+                    </div>
+
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: 20, fontWeight: 600, color: '#fff' }}>
+                      {gpu.model}
+                    </h3>
+
+                    {/* Price Section */}
+                    <div style={{ 
+                      backgroundColor: 'rgba(34, 197, 94, 0.1)', 
+                      borderRadius: 8, 
+                      padding: 16,
+                      marginBottom: 16
+                    }}>
+                      <div style={{ fontSize: 32, fontWeight: 700, color: '#22c55e' }}>
+                        ${best.price.toLocaleString()}
+                      </div>
+                      {savings > 0 && (
+                        <div style={{ fontSize: 14, color: '#22c55e', marginTop: 4 }}>
+                          Save ${savings.toLocaleString()}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 13, color: '#737373', marginTop: 8 }}>
+                        MSRP: ${gpu.msrp_usd.toLocaleString()}
+                      </div>
+                    </div>
+
+                    {/* Specs */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                        <span style={{ color: '#737373' }}>Architecture</span>
+                        <span style={{ color: '#fff' }}>{gpu.architecture}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                        <span style={{ color: '#737373' }}>VRAM</span>
+                        <span style={{ color: '#fff' }}>{gpu.vram_gb} GB</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                        <span style={{ color: '#737373' }}>TDP</span>
+                        <span style={{ color: '#fff' }}>{gpu.tdp_watts}W</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                        <span style={{ color: '#737373' }}>Release</span>
+                        <span style={{ color: '#fff' }}>{new Date(gpu.release_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                        <span style={{ color: '#737373' }}>Value Score</span>
+                        <span style={{ color: '#a855f7', fontWeight: 600 }}>{valueScore}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                        <span style={{ color: '#737373' }}>Availability</span>
+                        <span style={{ color: gpu.in_stock ? '#22c55e' : '#ef4444' }}>
+                          {gpu.in_stock ? 'In Stock' : 'Out of Stock'}
                         </span>
-                      </td>
-                      {selectedData.map(gpu => {
-                        const best = getBestPrice(gpu)
-                        const savings = gpu.msrp_usd - best.price
-                        return (
-                          <td key={gpu.id} className="p-5">
-                            <a 
-                              href={best.url || '#'}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-3xl font-bold text-white hover:text-green-400 transition-colors"
-                            >
-                              ${best.price.toLocaleString()}
-                            </a>
-                            {savings > 0 && (
-                              <div className="text-sm text-green-400 font-medium mt-1">
-                                Save ${savings.toLocaleString()}
-                              </div>
-                            )}
-                            {best.retailer !== 'default' && (
-                              <a 
-                                href={best.url || '#'}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mt-2 transition-colors"
-                              >
-                                {RETAILER_CONFIG[best.retailer]?.label || best.retailer}
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            )}
-                          </td>
-                        )
-                      })}
-                    </tr>
+                      </div>
+                    </div>
 
-                    {/* MSRP */}
-                    <tr className="border-b border-white/10">
-                      <td className="p-5 text-gray-400 font-medium bg-[#0a0a0a]">MSRP</td>
-                      {selectedData.map(gpu => (
-                        <td key={gpu.id} className="p-5 text-gray-500 text-lg">
-                          ${gpu.msrp_usd.toLocaleString()}
-                        </td>
-                      ))}
-                    </tr>
-
-                    {/* Retailers */}
-                    {[0, 1, 2].map((index) => (
-                      <tr key={index} className={`border-b border-white/10 ${index % 2 === 1 ? 'bg-white/[0.02]' : ''}`}>
-                        <td className="p-5 text-gray-400 bg-[#0a0a0a]">
-                          {index === 0 ? '1st' : index === 1 ? '2nd' : '3rd'} Option
-                        </td>
-                        {selectedData.map(gpu => {
-                          const retailers = getTop3Retailers(gpu)
-                          const retailer = retailers[index]
-                          
-                          if (!retailer) {
-                            return (
-                              <td key={gpu.id} className="p-5">
-                                <span className="text-gray-600">—</span>
-                              </td>
-                            )
-                          }
-                          
-                          const config = RETAILER_CONFIG[retailer.retailer]
-                          
-                          return (
-                            <td key={gpu.id} className="p-5">
-                              <a 
-                                href={retailer.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xl font-bold text-white hover:text-green-400 transition-colors"
-                              >
-                                ${retailer.price.toLocaleString()}
-                              </a>
-                              <div className="flex items-center gap-3 mt-2">
-                                <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${config?.bg || 'bg-gray-500/10'} ${config?.color || 'text-gray-400'}`}>
-                                  {config?.label || retailer.retailer}
-                                </span>
-                                <span className={`text-sm font-medium ${retailer.in_stock ? 'text-green-400' : 'text-red-400'}`}>
-                                  {retailer.in_stock ? 'In Stock' : 'Out of Stock'}
-                                </span>
-                              </div>
-                            </td>
-                          )
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    {/* Best Price Retailer */}
+                    {best.retailer !== 'default' && (
+                      <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #262626' }}>
+                        <div style={{ fontSize: 12, color: '#737373', marginBottom: 4 }}>Best Price At</div>
+                        <div style={{ 
+                          fontSize: 14, 
+                          color: RETAILER_CONFIG[best.retailer]?.color || '#fff',
+                          fontWeight: 500
+                        }}>
+                          {RETAILER_CONFIG[best.retailer]?.label || best.retailer}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
 
         {/* Empty State */}
-        {selectedData.length === 0 && (
-          <div className="text-center py-20 bg-white/[0.03] rounded-2xl border border-white/10">
-            <div className="w-20 h-20 mx-auto mb-6 bg-white/5 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-10 h-10 text-gray-600" />
-            </div>
-            <h3 className="text-2xl font-semibold text-white mb-3">No GPUs selected</h3>
-            <p className="text-gray-400 max-w-md mx-auto">Click on the GPU cards above to add them to your comparison. You can compare up to 4 graphics cards side by side.</p>
+        {!loading && selectedData.length === 0 && (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '60px 20px', 
+            backgroundColor: '#141414',
+            borderRadius: 12,
+            border: '1px dashed #333'
+          }}>
+            <Monitor size={48} color="#333" style={{ marginBottom: 16 }} />
+            <h3 style={{ margin: '0 0 8px 0', fontSize: 20, color: '#fff' }}>Select GPUs to Compare</h3>
+            <p style={{ margin: 0, color: '#737373', fontSize: 14 }}>
+              Click on the GPU cards above to add them to your comparison
+            </p>
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ALL_GPUS } from '@/lib/gpu-data'
+import { fetchGPUBySlug, fetchGPUs } from '@/lib/api'
 import { getPriceHistory, getPriceStats } from '@/lib/price-history'
 import { GPUProductSchema, BreadcrumbSchema, GPUFAQSchema } from '@/components/schema'
 import PriceChart from '@/components/price-chart'
@@ -11,12 +11,14 @@ type Props = {
 }
 
 export async function generateStaticParams() {
-    return ALL_GPUS.filter(g => g.active).map(gpu => ({ slug: gpu.slug }))
+    // Fetch from API at build time
+    const gpus = await fetchGPUs()
+    return gpus.filter(g => g.active).map(gpu => ({ slug: gpu.slug }))
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params
-    const gpu = ALL_GPUS.find(g => g.slug === slug)
+    const gpu = await fetchGPUBySlug(slug)
     if (!gpu) return { title: 'GPU Not Found' }
 
     const savings = gpu.msrp_usd - gpu.current_price_usd
@@ -33,25 +35,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
 }
 
+export const revalidate = 60 // Revalidate every 60 seconds
+
 export default async function GPUPage({ params }: Props) {
     const { slug } = await params
-    const gpu = ALL_GPUS.find(g => g.slug === slug)
+    const gpu = await fetchGPUBySlug(slug)
 
     if (!gpu) {
         notFound()
     }
 
-    // Transform retailer_prices to retailers format
-    const retailerData = gpu.retailer_prices ? Object.entries(gpu.retailer_prices).reduce((acc, [key, data]) => {
-        acc[key] = {
-            name: key.charAt(0).toUpperCase() + key.slice(1),
-            url: data.url,
-            price: data.price,
-            inStock: data.in_stock,
-            verified: data.verified || false
-        }
-        return acc
-    }, {} as Record<string, any>) : {}
+    // Use retailers from API response
+    const retailerData = gpu.retailers || {}
     const priceHistory = getPriceHistory(slug)
     const priceStats = getPriceStats(slug, gpu.current_price_usd)
     const retailerNames = Object.values(retailerData).map(r => r.name)
@@ -141,13 +136,17 @@ export default async function GPUPage({ params }: Props) {
                             <span className="badge badge--blue">
                                 {gpu.brand.toUpperCase()} · {gpu.generation}
                             </span>
-                            {gpu.in_stock ? (
+                            {gpu.stockStatus === 'in_stock' ? (
                                 <span className="badge" style={{ background: '#166534', color: '#fff' }}>
                                     ✓ In Stock
                                 </span>
-                            ) : (
+                            ) : gpu.stockStatus === 'out_of_stock' ? (
                                 <span className="badge" style={{ background: '#991b1b', color: '#fff' }}>
                                     ✗ Out of Stock
+                                </span>
+                            ) : (
+                                <span className="badge" style={{ background: '#854d0e', color: '#fff' }}>
+                                    ⚠ Check Stock
                                 </span>
                             )}
                         </div>
@@ -213,11 +212,13 @@ export default async function GPUPage({ params }: Props) {
                         const stockColor = isVerified
                             ? (data.inStock ? '#22c55e' : '#ef4444')
                             : '#eab308'
-                        
+                        // Use affiliate URL if available
+                        const linkUrl = data.affiliateUrl || data.url
+
                         return (
                             <a
                                 key={retailer}
-                                href={data.url}
+                                href={linkUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="card card--hover"
@@ -257,7 +258,7 @@ export default async function GPUPage({ params }: Props) {
             {/* Price History */}
             <section style={{ marginBottom: 48 }}>
                 <h2 style={{ marginBottom: 20 }}>Price History</h2>
-                
+
                 {/* Stats Cards */}
                 {priceStats && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 24 }}>
@@ -287,13 +288,13 @@ export default async function GPUPage({ params }: Props) {
                         </div>
                     </div>
                 )}
-                
+
                 {/* Chart */}
                 {priceHistory.length > 0 && (
                     <div style={{ background: '#1a1a1a', borderRadius: 12, padding: 24 }}>
-                        <PriceChart 
-                            data={priceHistory} 
-                            currentPrice={gpu.current_price_usd} 
+                        <PriceChart
+                            data={priceHistory}
+                            currentPrice={gpu.current_price_usd}
                             msrp={gpu.msrp_usd}
                             gpuModel={gpu.model}
                         />
@@ -304,56 +305,56 @@ export default async function GPUPage({ params }: Props) {
             {/* SEO Content Section - 300+ words */}
             <section className="card" style={{ marginBottom: 32 }}>
                 <h2 style={{ marginBottom: 20 }}>About the {gpu.model}</h2>
-                
+
                 <div style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                     <p style={{ marginBottom: 16 }}>
-                        The {gpu.model} is {getUseCase()}. Built on {gpu.brand}'s {gpu.architecture} architecture 
-                        and released in {new Date(gpu.release_date).getFullYear()}, this GPU features {gpu.vram_gb}GB of GDDR memory 
+                        The {gpu.model} is {getUseCase()}. Built on {gpu.brand}'s {gpu.architecture} architecture
+                        and released in {new Date(gpu.release_date).getFullYear()}, this GPU features {gpu.vram_gb}GB of GDDR memory
                         and a {gpu.tdp_watts}W TDP, {getPowerAdvice()}.
                     </p>
-                    
+
                     <h3 style={{ color: 'var(--text-primary)', margin: '24px 0 12px', fontSize: 18 }}>Current Pricing & Availability</h3>
                     <p style={{ marginBottom: 16 }}>
-                        The {gpu.model} is currently available from {retailerNames.length} major retailers: {retailerNames.join(', ')}. 
+                        The {gpu.model} is currently available from {retailerNames.length} major retailers: {retailerNames.join(', ')}.
                         The best price is ${gpu.current_price_usd}
-                        {savings > 0 ? `, which represents a ${savingsPercent}% savings off the MSRP of $${gpu.msrp_usd}` : `, selling at MSRP of $${gpu.msrp_usd}`}. 
-                        GPU prices fluctuate frequently based on stock levels, cryptocurrency mining demand, and new product launches. 
+                        {savings > 0 ? `, which represents a ${savingsPercent}% savings off the MSRP of $${gpu.msrp_usd}` : `, selling at MSRP of $${gpu.msrp_usd}`}.
+                        GPU prices fluctuate frequently based on stock levels, cryptocurrency mining demand, and new product launches.
                         Prices on GPU Drip are updated regularly to ensure you're seeing the most current deals.
                     </p>
-                    
+
                     <h3 style={{ color: 'var(--text-primary)', margin: '24px 0 12px', fontSize: 18 }}>Should You Buy Now?</h3>
                     <p style={{ marginBottom: 16 }}>
-                        {savings > 50 
+                        {savings > 50
                             ? `With current savings of $${savings}, now is a great time to buy the ${gpu.model}. `
                             : `At $${gpu.current_price_usd}, the ${gpu.model} is ${savings > 0 ? 'slightly below' : 'at'} MSRP. `
                         }
-                        GPU prices typically drop during major sales events like Black Friday and Prime Day, but can spike during 
-                        cryptocurrency booms or when new generations launch. If you're not in a rush, set a price alert on GPU Drip 
+                        GPU prices typically drop during major sales events like Black Friday and Prime Day, but can spike during
+                        cryptocurrency booms or when new generations launch. If you're not in a rush, set a price alert on GPU Drip
                         to get notified immediately when the price drops below your target.
                     </p>
-                    
+
                     <h3 style={{ color: 'var(--text-primary)', margin: '24px 0 12px', fontSize: 18 }}>{gpu.model} vs {getCompetitor()}</h3>
                     <p style={{ marginBottom: 16 }}>
-                        The main competitor to the {gpu.model} is the {getCompetitor()}. Both cards target the same price segment 
-                        but offer different strengths. {gpu.brand === 'nvidia' ? 'NVIDIA typically leads in ray tracing performance and DLSS technology, while AMD offers more VRAM for the price' : 'AMD typically offers more VRAM and better price-to-performance ratios, while NVIDIA leads in ray tracing and DLSS support'}. 
-                        Use GPU Drip's comparison tool to see detailed specs side-by-side and determine which GPU offers the best 
+                        The main competitor to the {gpu.model} is the {getCompetitor()}. Both cards target the same price segment
+                        but offer different strengths. {gpu.brand === 'nvidia' ? 'NVIDIA typically leads in ray tracing performance and DLSS technology, while AMD offers more VRAM for the price' : 'AMD typically offers more VRAM and better price-to-performance ratios, while NVIDIA leads in ray tracing and DLSS support'}.
+                        Use GPU Drip's comparison tool to see detailed specs side-by-side and determine which GPU offers the best
                         value for your specific needs.
                     </p>
-                    
+
                     <h3 style={{ color: 'var(--text-primary)', margin: '24px 0 12px', fontSize: 18 }}>Power Supply Requirements</h3>
                     <p>
-                        The {gpu.model} has a {gpu.tdp_watts}W TDP (Thermal Design Power). For optimal performance and stability, 
-                        {gpu.tdp_watts <= 200 
-                            ? 'a 550W-650W power supply is sufficient for most builds' 
-                            : gpu.tdp_watts <= 300 
-                                ? 'NVIDIA/AMD recommends a 750W power supply' 
+                        The {gpu.model} has a {gpu.tdp_watts}W TDP (Thermal Design Power). For optimal performance and stability,
+                        {gpu.tdp_watts <= 200
+                            ? 'a 550W-650W power supply is sufficient for most builds'
+                            : gpu.tdp_watts <= 300
+                                ? 'NVIDIA/AMD recommends a 750W power supply'
                                 : 'you\'ll need an 850W or higher power supply with proper cooling'
-                        }. 
-                        Make sure your PSU has the correct power connectors (usually {gpu.tdp_watts >= 300 ? '2x 8-pin or 12VHPWR' : '1x 8-pin or 6-pin'}). 
+                        }.
+                        Make sure your PSU has the correct power connectors (usually {gpu.tdp_watts >= 300 ? '2x 8-pin or 12VHPWR' : '1x 8-pin or 6-pin'}).
                         Undervolting can reduce power consumption by 10-20% while maintaining performance.
                     </p>
                 </div>
-                
+
                 <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)' }}>
                     Prices tracked across {retailerNames.length} retailers • Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </div>

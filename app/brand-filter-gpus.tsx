@@ -39,12 +39,27 @@ type BrandFilterGPUsProps = {
 export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
     const [brand, setBrand] = useState<'all'|'nvidia'|'amd'>('all');
     const [search, setSearch] = useState('');
+    const [sortBy, setSortBy] = useState<'default'|'deals'|'price-low'|'price-high'>('default');
     const router = useRouter();
 
     const filtered = initialGPUs.filter(g => {
         const matchesBrand = brand === 'all' || g.brand === brand;
         const matchesSearch = !search || g.model.toLowerCase().includes(search.toLowerCase());
         return matchesBrand && matchesSearch;
+    });
+
+    // Sort by deals (highest savings first), then price, then name
+    const sorted = [...filtered].sort((a, b) => {
+        if (sortBy === 'deals') {
+            // Sort by price_change_percent (most negative = best deal)
+            return a.price_change_percent - b.price_change_percent;
+        } else if (sortBy === 'price-low') {
+            return a.current_price_usd - b.current_price_usd;
+        } else if (sortBy === 'price-high') {
+            return b.current_price_usd - a.current_price_usd;
+        }
+        // Default: by price_change_percent (deals first)
+        return a.price_change_percent - b.price_change_percent;
     });
 
     return (
@@ -89,6 +104,27 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
                         style={{ padding: '6px 14px', fontSize: 13 }}
                     >AMD</button>
                 </div>
+                
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <select 
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        style={{
+                            padding: '6px 12px',
+                            fontSize: 13,
+                            background: '#1a1a1a',
+                            border: '1px solid #333',
+                            borderRadius: 6,
+                            color: '#fff',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <option value="default">Sort: Best Deals</option>
+                        <option value="deals">Best Deals</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                    </select>
+                </div>
             </div>
 
             <div className="card" style={{ padding: 0 }}>
@@ -104,7 +140,7 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.slice(0, 10).map(gpu => {
+                            {sorted.slice(0, 10).map(gpu => {
                                 const isDeal = gpu.price_change_percent < 0;
                                 const isSurge = gpu.price_change_percent > 0;
                                 
