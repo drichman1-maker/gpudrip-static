@@ -108,7 +108,10 @@ export default function AlertsClient() {
     // Fetch GPUs on mount
     useEffect(() => {
         fetch(`${BACKEND_URL}/api/gpus`)
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) throw new Error(`HTTP ${r.status}`)
+                return r.json()
+            })
             .then(data => {
                 setGpus(data.gpus || [])
                 setLoading(false)
