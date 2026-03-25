@@ -94,8 +94,8 @@ interface Alert {
 }
 
 export default function AlertsClient() {
-    const [gpus, setGpus] = useState<GPU[]>([])
-    const [loading, setLoading] = useState(true)
+    const [gpus, setGpus] = useState<GPU[]>(FALLBACK_GPUS)
+    const [loading, setLoading] = useState(false)
     const [selectedGpu, setSelectedGpu] = useState('')
     const [targetPrice, setTargetPrice] = useState('')
     const [email, setEmail] = useState('')
@@ -113,7 +113,7 @@ export default function AlertsClient() {
                 return r.json()
             })
             .then(data => {
-                setGpus(data.gpus || [])
+                setGpus(Array.isArray(data) ? data : (data.gpus || []))
                 setLoading(false)
             })
             .catch(err => {
