@@ -250,6 +250,11 @@ h4 { font-size: 1rem; font-weight: 600; }
 @media (max-width: 768px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .container { padding: 0 16px; }
+  .desktop-links { display: none !important; }
+}
+
+@media (min-width: 769px) {
+  .mobile-menu-container { display: none !important; }
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────────── */

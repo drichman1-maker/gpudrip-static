@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { OrganizationSchema, WebSiteSchema } from '@/components/schema'
 import { AuthProvider } from '@/lib/auth-context'
+import MobileNav from './components/MobileNav'
 
 export const metadata: Metadata = {
     title: { default: 'GPU Drip — GPU Price Tracker & Deal Alerts', template: '%s | GPU Drip' },
@@ -77,11 +78,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             </span>
                         </a>
                         <div className="nav__links" style={{ display: 'flex', gap: 8 }}>
-                            <a href="/" className="nav__link" style={{ background: '#1a1a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #333', color: '#fff', fontWeight: 600, fontSize: 14 }}>GPUs</a>
-                            <a href="/compare" className="nav__link" style={{ background: '#1a1a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #ff6b35', color: '#ff6b35', fontWeight: 600, fontSize: 14 }}>Compare</a>
-                            <a href="/retailers" className="nav__link" style={{ background: '#1a1a2e', padding: '8px 16px', borderRadius: 8, border: '1px solid #FF9900', color: '#FF9900', fontWeight: 600, fontSize: 14 }}>Retailers</a>
-                            <a href="/blog" className="nav__link" style={{ background: '#1a3a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #22c55e', color: '#22c55e', fontWeight: 600, fontSize: 14 }}>Blog</a>
-                            <a href="/alerts" className="nav__link" style={{ background: '#1a1a3a', padding: '8px 16px', borderRadius: 8, border: '1px solid #4a90e2', color: '#4a90e2', fontWeight: 600, fontSize: 14 }}>Alerts</a>
+                            {/* Desktop links - hidden on mobile */}
+                            <div className="desktop-links" style={{ display: 'flex', gap: 8 }}>
+                                <a href="/" className="nav__link" style={{ background: '#1a1a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #333', color: '#fff', fontWeight: 600, fontSize: 14 }}>GPUs</a>
+                                <a href="/compare" className="nav__link" style={{ background: '#1a1a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #ff6b35', color: '#ff6b35', fontWeight: 600, fontSize: 14 }}>Compare</a>
+                                <a href="/retailers" className="nav__link" style={{ background: '#1a1a2e', padding: '8px 16px', borderRadius: 8, border: '1px solid #FF9900', color: '#FF9900', fontWeight: 600, fontSize: 14 }}>Retailers</a>
+                                <a href="/blog" className="nav__link" style={{ background: '#1a3a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #22c55e', color: '#22c55e', fontWeight: 600, fontSize: 14 }}>Blog</a>
+                                <a href="/alerts" className="nav__link" style={{ background: '#1a1a3a', padding: '8px 16px', borderRadius: 8, border: '1px solid #4a90e2', color: '#4a90e2', fontWeight: 600, fontSize: 14 }}>Alerts</a>
+                            </div>
+                            {/* Mobile hamburger - shown on mobile */}
+                            <div className="mobile-menu-container" style={{ position: 'relative' }}>
+                                <MobileNav />
+                            </div>
                         </div>
                     </div>
                 </nav>
