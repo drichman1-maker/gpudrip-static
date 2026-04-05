@@ -40,6 +40,7 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
     const [brand, setBrand] = useState<'all'|'nvidia'|'amd'>('all');
     const [search, setSearch] = useState('');
     const [sortBy, setSortBy] = useState<'default'|'deals'|'price-low'|'price-high'>('default');
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const router = useRouter();
 
     const filtered = initialGPUs.filter(g => {
@@ -61,6 +62,11 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
         // Default: by price_change_percent (deals first)
         return a.price_change_percent - b.price_change_percent;
     });
+
+    const handleBrandChange = (newBrand: 'all'|'nvidia'|'amd') => {
+        setBrand(newBrand);
+        setMobileMenuOpen(false);
+    };
 
     return (
         <section className="container" style={{ padding: '48px 24px' }}>
@@ -87,7 +93,8 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
                     }}
                 />
                 
-                <div style={{ display: 'flex', gap: 6 }}>
+                {/* Desktop: Button row */}
+                <div style={{ display: 'flex', gap: 6 }} className="desktop-filters">
                     <button 
                         className={`btn ${brand === 'all' ? 'btn--primary' : 'btn--ghost'}`}
                         onClick={() => setBrand('all')}
@@ -103,6 +110,93 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
                         onClick={() => setBrand('amd')}
                         style={{ padding: '6px 14px', fontSize: 13 }}
                     >AMD</button>
+                </div>
+
+                {/* Mobile: Dropdown */}
+                <div style={{ display: 'none' }} className="mobile-filters">
+                    <div style={{ position: 'relative' }}>
+                        <button 
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            className="btn btn--ghost"
+                            style={{ 
+                                padding: '6px 14px', 
+                                fontSize: 13,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8
+                            }}
+                        >
+                            Brand: {brand === 'all' ? 'All' : brand.toUpperCase()}
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ 
+                                transform: mobileMenuOpen ? 'rotate(180deg)' : 'none',
+                                transition: 'transform 0.2s'
+                            }}>
+                                <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                        </button>
+                        
+                        {mobileMenuOpen && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '100%',
+                                right: 0,
+                                marginTop: 4,
+                                background: '#1a1a1a',
+                                border: '1px solid #333',
+                                borderRadius: 8,
+                                padding: '4px',
+                                minWidth: 120,
+                                zIndex: 100,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                            }}>
+                                <button 
+                                    onClick={() => handleBrandChange('all')}
+                                    style={{
+                                        display: 'block',
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        textAlign: 'left',
+                                        background: brand === 'all' ? '#00ff88' : 'transparent',
+                                        color: brand === 'all' ? '#000' : '#fff',
+                                        border: 'none',
+                                        borderRadius: 4,
+                                        fontSize: 13,
+                                        cursor: 'pointer'
+                                    }}
+                                >All</button>
+                                <button 
+                                    onClick={() => handleBrandChange('nvidia')}
+                                    style={{
+                                        display: 'block',
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        textAlign: 'left',
+                                        background: brand === 'nvidia' ? '#76b900' : 'transparent',
+                                        color: brand === 'nvidia' ? '#000' : '#fff',
+                                        border: 'none',
+                                        borderRadius: 4,
+                                        fontSize: 13,
+                                        cursor: 'pointer'
+                                    }}
+                                >NVIDIA</button>
+                                <button 
+                                    onClick={() => handleBrandChange('amd')}
+                                    style={{
+                                        display: 'block',
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        textAlign: 'left',
+                                        background: brand === 'amd' ? '#ed1c24' : 'transparent',
+                                        color: brand === 'amd' ? '#fff' : '#fff',
+                                        border: 'none',
+                                        borderRadius: 4,
+                                        fontSize: 13,
+                                        cursor: 'pointer'
+                                    }}
+                                >AMD</button>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -195,6 +289,26 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
                     View all {initialGPUs.length} GPUs →
                 </Link>
             </div>
+
+            {/* Mobile responsive styles */}
+            <style jsx>{`
+                @media (max-width: 768px) {
+                    .desktop-filters {
+                        display: none !important;
+                    }
+                    .mobile-filters {
+                        display: block !important;
+                    }
+                }
+                @media (min-width: 769px) {
+                    .desktop-filters {
+                        display: flex !important;
+                    }
+                    .mobile-filters {
+                        display: none !important;
+                    }
+                }
+            `}</style>
         </section>
     );
 }
