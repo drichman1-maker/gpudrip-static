@@ -83,22 +83,20 @@ export default function MobileNav() {
         
         .mobile-menu {
           position: absolute;
-          top: 100%;
+          top: calc(100% + 8px);
           right: 0;
-          left: 0;
-          margin-top: 8px;
-          padding: 0 16px;
+          width: 200px;
           z-index: 1000;
         }
         
         .mobile-menu-inner {
-          background: rgba(10, 10, 10, 0.98);
-          border: 1px solid #2a2a2a;
+          background: rgba(15, 15, 15, 0.98);
+          border: 1px solid #333;
           border-radius: 12px;
-          padding: 12px;
+          padding: 8px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 4px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
         
@@ -110,17 +108,13 @@ export default function MobileNav() {
           border-radius: 8px;
           font-weight: 600;
           font-size: 14px;
-          text-align: center;
+          text-align: left;
           transition: all 0.15s ease;
+          white-space: nowrap;
         }
         
         .mobile-nav-link:hover {
           background: #262626;
-          transform: translateY(-1px);
-        }
-        
-        .mobile-nav-link:active {
-          transform: translateY(0);
         }
       `}</style>
     </div>
