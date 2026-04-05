@@ -1,287 +1,174 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 
-interface GPU {
+export interface GPUSelectorGPU {
     id: string
     model: string
-    current_price_usd: number
-    msrp_usd: number
-    brand: 'nvidia' | 'amd' | 'intel'
-    architecture: string
-    generation: string
-    vram_gb: number
-    in_stock?: boolean
-    price_change_percent: number
+    manufacturer?: string
 }
 
 interface GPUSelectorProps {
-    gpus: GPU[]
-    selectedGpu: string
-    onSelect: (gpuId: string) => void
-    loading?: boolean
+    gpus: GPUSelectorGPU[]
+    selectedGpus: string[]
+    onSelect: (selectedIds: string[]) => void
+    disabled?: boolean
 }
 
-const getBrandIcon = (brand: string) => {
-    switch (brand) {
-        case 'nvidia': return '🟢'
-        case 'amd': return '🔴'
-        case 'intel': return '🔵'
-        default: return '⚪'
-    }
-}
-
-const getBrandColor = (brand: string) => {
-    switch (brand) {
-        case 'nvidia': return '#76B900'
-        case 'amd': return '#ED1C24'
-        case 'intel': return '#0071c5'
-        default: return 'var(--text-secondary)'
-    }
-}
-
-const getPriceChangeColor = (change: number) => {
-    if (change > 0) return 'var(--red)'
-    if (change < 0) return 'var(--green)'
-    return 'var(--text-secondary)'
-}
-
-export default function GPUSelector({ gpus, selectedGpu, onSelect, loading }: GPUSelectorProps) {
+export default function GPUSelector({ gpus, selectedGpus, onSelect, disabled }: GPUSelectorProps) {
     const [isOpen, setIsOpen] = useState(false)
-    const [searchQuery, setSearchQuery] = useState('')
+    const [searchTerm, setSearchTerm] = useState('')
+    const [selectedBrand, setSelectedBrand] = useState<string>('all')
     const dropdownRef = useRef<HTMLDivElement>(null)
-    const searchRef = useRef<HTMLInputElement>(null)
 
-    const selectedGpuData = gpus.find(g => g.id === selectedGpu)
-    
-    const filteredGPUs = gpus.filter(gpu => 
-        gpu.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        gpu.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        gpu.generation.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-
-    // Sort by brand (NVIDIA, AMD, Intel) and then by price descending
-    const sortedGPUs = filteredGPUs.sort((a, b) => {
-        // First by brand preference
-        const brandOrder = { nvidia: 0, amd: 1, intel: 2 }
-        const brandDiff = brandOrder[a.brand] - brandOrder[b.brand]
-        if (brandDiff !== 0) return brandDiff
-        
-        // Then by price descending (highest first)
-        return b.current_price_usd - a.current_price_usd
-    })
-
+    // Close dropdown when clicking outside
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
+        function handleClickOutside(event: MouseEvent) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false)
             }
         }
-
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
-    const handleOpen = () => {
-        setIsOpen(true)
-        setTimeout(() => searchRef.current?.focus(), 100)
+    // Get unique brands
+    const brands = useMemo(() => {
+        const brandSet = new Set<string>()
+        gpus.forEach(gpu => {
+            if (gpu.manufacturer) {
+                brandSet.add(gpu.manufacturer)
+            }
+        })
+        return ['all', ...Array.from(brandSet).sort()]
+    }, [gpus])
+
+    // Filter by brand and search
+    const filteredGpus = useMemo(() => {
+        let filtered = gpus
+        if (selectedBrand !== 'all') {
+            filtered = filtered.filter(gpu => gpu.manufacturer === selectedBrand)
+        }
+        if (searchTerm) {
+            filtered = filtered.filter(gpu =>
+                gpu.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (gpu.manufacturer || '').toLowerCase().includes(searchTerm.toLowerCase())
+            )
+        }
+        return filtered
+    }, [gpus, selectedBrand, searchTerm])
+
+    const selectedGpuObjects = gpus.filter((gpu: GPUSelectorGPU) => selectedGpus.includes(gpu.id))
+
+    const handleToggleGpu = (gpuId: string) => {
+        if (selectedGpus.includes(gpuId)) {
+            // Remove if already selected
+            onSelect(selectedGpus.filter(id => id !== gpuId))
+        } else {
+            // Add if under limit
+            if (selectedGpus.length < 5) {
+                onSelect([...selectedGpus, gpuId])
+            }
+        }
     }
 
-    const handleSelect = (gpu: GPU) => {
-        onSelect(gpu.id)
-        setIsOpen(false)
-        setSearchQuery('')
+    const handleRemoveGpu = (gpuId: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        onSelect(selectedGpus.filter(id => id !== gpuId))
     }
 
     return (
         <div className="gpu-selector" ref={dropdownRef}>
-            <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
-                Select GPU
+            <label className="form-label">
+                GPU to Watch <span className="text-muted">({selectedGpus.length}/5)</span>
             </label>
             
-            {/* Trigger Button */}
+            {/* Selected GPUs Chips */}
+            {selectedGpus.length > 0 && (
+                <div className="selected-gpus">
+                    {selectedGpuObjects.map((gpu: GPUSelectorGPU) => (
+                        <span key={gpu.id} className="gpu-chip">
+                            {gpu.model}
+                            <button
+                                type="button"
+                                className="remove-btn"
+                                onClick={(e) => handleRemoveGpu(gpu.id, e)}
+                                disabled={disabled}
+                            >
+                                ×
+                            </button>
+                        </span>
+                    ))}
+                </div>
+            )}
+            
+            {/* Dropdown Toggle */}
             <button
                 type="button"
-                onClick={handleOpen}
-                style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: `1px solid ${isOpen ? 'var(--border-focus)' : 'var(--border)'}`,
-                    background: isOpen ? 'var(--bg-elevated)' : 'var(--bg-surface)',
-                    color: 'var(--text-primary)',
-                    fontSize: 15,
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s'
-                }}
-                disabled={loading}
+                className={`selector-trigger ${isOpen ? 'open' : ''}`}
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                disabled={disabled || selectedGpus.length >= 5}
             >
-                <div style={{ flex: 1 }}>
-                    {selectedGpuData ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ fontSize: 16 }}>
-                                {getBrandIcon(selectedGpuData.brand)}
-                            </span>
-                            <div>
-                                <div style={{ fontWeight: 500, marginBottom: 2 }}>
-                                    {selectedGpuData.model}
-                                </div>
-                                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                                    ${selectedGpuData.current_price_usd} · {selectedGpuData.vram_gb}GB · {selectedGpuData.generation}
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <span style={{ color: 'var(--text-secondary)' }}>
-                            Choose a GPU...
-                        </span>
-                    )}
-                </div>
-                <div style={{
-                    fontSize: 12,
-                    color: 'var(--text-muted)',
-                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.15s'
-                }}>
-                    ▼
-                </div>
+                {selectedGpus.length >= 5 
+                    ? 'Maximum 5 GPUs selected' 
+                    : selectedGpus.length === 0 
+                        ? 'Choose GPUs to watch...' 
+                        : 'Add more GPUs...'}
+                <span className="arrow">{isOpen ? '▲' : '▼'}</span>
             </button>
 
-            {/* Dropdown */}
+            {/* Dropdown Menu */}
             {isOpen && (
-                <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    marginTop: 4,
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-sm)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    zIndex: 1000,
-                    maxHeight: 400,
-                    overflow: 'hidden'
-                }}>
-                    {/* Search Input */}
-                    <div style={{ padding: 12, borderBottom: '1px solid var(--border)' }}>
+                <div className="dropdown-menu">
+                    <div className="search-box">
                         <input
-                            ref={searchRef}
                             type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search GPUs..."
-                            style={{
-                                width: '100%',
-                                padding: '8px 12px',
-                                borderRadius: 'var(--radius-sm)',
-                                border: '1px solid var(--border)',
-                                background: 'var(--bg-surface)',
-                                color: 'var(--text-primary)',
-                                fontSize: 14
-                            }}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            autoFocus
                         />
                     </div>
-
-                    {/* GPU List */}
-                    <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                        {sortedGPUs.length > 0 ? (
-                            sortedGPUs.map(gpu => (
-                                <button
-                                    key={gpu.id}
-                                    type="button"
-                                    onClick={() => handleSelect(gpu)}
-                                    style={{
-                                        width: '100%',
-                                        padding: 12,
-                                        border: 'none',
-                                        background: gpu.id === selectedGpu ? 'var(--bg-hover)' : 'transparent',
-                                        color: 'var(--text-primary)',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 12,
-                                        transition: 'background 0.1s'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (gpu.id !== selectedGpu) {
-                                            e.currentTarget.style.background = 'var(--bg-overlay)'
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (gpu.id !== selectedGpu) {
-                                            e.currentTarget.style.background = 'transparent'
-                                        }
-                                    }}
-                                >
-                                    <div style={{ 
-                                        fontSize: 20, 
-                                        color: getBrandColor(gpu.brand),
-                                        minWidth: 24 
-                                    }}>
-                                        {getBrandIcon(gpu.brand)}
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                            <span style={{ fontWeight: 500 }}>
-                                                {gpu.model}
-                                            </span>
-                                            <div style={{ 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                gap: 4,
-                                                fontSize: 11,
-                                                color: 'var(--text-muted)'
-                                            }}>
-                                                <span>{gpu.vram_gb}GB</span>
-                                                <span>•</span>
-                                                <span>{gpu.generation}</span>
-                                                {!gpu.in_stock && (
-                                                    <>
-                                                        <span>•</span>
-                                                        <span style={{ color: 'var(--red)' }}>Out of Stock</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: 8,
-                                            fontSize: 13,
-                                            color: 'var(--text-secondary)'
-                                        }}>
-                                            <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-                                                ${gpu.current_price_usd}
-                                            </span>
-                                            <span>MSRP: ${gpu.msrp_usd}</span>
-                                            {gpu.price_change_percent !== 0 && (
-                                                <span style={{ 
-                                                    color: getPriceChangeColor(gpu.price_change_percent),
-                                                    fontWeight: 500 
-                                                }}>
-                                                    {gpu.price_change_percent > 0 ? '+' : ''}{gpu.price_change_percent}%
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </button>
-                            ))
+                    
+                    {/* Brand Filter Pills */}
+                    <div className="brand-filters">
+                        {brands.map(brand => (
+                            <button
+                                key={brand}
+                                type="button"
+                                className={`brand-pill ${selectedBrand === brand ? 'active' : ''}`}
+                                onClick={() => setSelectedBrand(brand)}
+                            >
+                                {brand === 'all' ? 'All' : brand}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    <div className="gpu-list">
+                        {filteredGpus.length === 0 ? (
+                            <div className="no-results">No GPUs found</div>
                         ) : (
-                            <div style={{
-                                padding: 20,
-                                textAlign: 'center',
-                                color: 'var(--text-secondary)',
-                                fontSize: 14
-                            }}>
-                                No GPUs found matching "{searchQuery}"
-                            </div>
+                            filteredGpus.map((gpu: GPUSelectorGPU) => {
+                                const isSelected = selectedGpus.includes(gpu.id)
+                                return (
+                                    <div
+                                        key={gpu.id}
+                                        className={`gpu-option ${isSelected ? 'selected' : ''}`}
+                                        onClick={() => handleToggleGpu(gpu.id)}
+                                    >
+                                        <span className="checkbox">
+                                            {isSelected ? '☑' : '☐'}
+                                        </span>
+                                        <span className="gpu-name">{gpu.model}</span>
+                                        <span className="manufacturer">{gpu.manufacturer || 'Unknown'}</span>
+                                    </div>
+                                )
+                            })
                         )}
+                    </div>
+                    
+                    <div className="dropdown-footer">
+                        {selectedGpus.length}/5 GPUs selected
                     </div>
                 </div>
             )}
@@ -289,6 +176,208 @@ export default function GPUSelector({ gpus, selectedGpu, onSelect, loading }: GP
             <style jsx>{`
                 .gpu-selector {
                     position: relative;
+                    margin-bottom: 1rem;
+                }
+                
+                .selected-gpus {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                    margin-bottom: 0.75rem;
+                }
+                
+                .gpu-chip {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                    padding: 0.375rem 0.75rem;
+                    background: var(--blue);
+                    color: white;
+                    border-radius: 100px;
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                }
+                
+                .remove-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 18px;
+                    height: 18px;
+                    border: none;
+                    background: rgba(255,255,255,0.2);
+                    color: white;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    font-size: 14px;
+                    line-height: 1;
+                    padding: 0;
+                    margin-left: 0.25rem;
+                }
+                
+                .remove-btn:hover {
+                    background: rgba(255,255,255,0.3);
+                }
+                
+                .selector-trigger {
+                    width: 100%;
+                    padding: 0.875rem 1rem;
+                    background: var(--bg-elevated);
+                    border: 1px solid var(--border);
+                    border-radius: 12px;
+                    color: var(--text);
+                    font-size: 1rem;
+                    text-align: left;
+                    cursor: pointer;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    transition: all 0.2s;
+                }
+                
+                .selector-trigger:hover:not(:disabled) {
+                    border-color: var(--blue);
+                }
+                
+                .selector-trigger:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+                
+                .selector-trigger.open {
+                    border-color: var(--blue);
+                }
+                
+                .arrow {
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                }
+                
+                .dropdown-menu {
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    right: 0;
+                    margin-top: 0.5rem;
+                    background: var(--bg-elevated);
+                    border: 1px solid var(--border);
+                    border-radius: 12px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+                    z-index: 100;
+                    max-height: 400px;
+                    display: flex;
+                    flex-direction: column;
+                }
+                
+                .search-box {
+                    padding: 0.75rem;
+                    border-bottom: 1px solid var(--border);
+                }
+                
+                .search-box input {
+                    width: 100%;
+                    padding: 0.625rem 1rem;
+                    background: var(--bg);
+                    border: 1px solid var(--border);
+                    border-radius: 8px;
+                    color: var(--text);
+                    font-size: 0.875rem;
+                }
+                
+                .search-box input:focus {
+                    outline: none;
+                    border-color: var(--blue);
+                }
+                
+                .brand-filters {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                    padding: 0.5rem 0.75rem;
+                    border-bottom: 1px solid var(--border);
+                }
+                
+                .brand-pill {
+                    padding: 0.375rem 0.75rem;
+                    border: 1px solid var(--border);
+                    border-radius: 100px;
+                    background: var(--bg);
+                    color: var(--text-muted);
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.15s;
+                }
+                
+                .brand-pill:hover {
+                    border-color: var(--blue);
+                    color: var(--blue);
+                }
+                
+                .brand-pill.active {
+                    background: var(--blue);
+                    border-color: var(--blue);
+                    color: white;
+                }
+                
+                .gpu-list {
+                    overflow-y: auto;
+                    max-height: 280px;
+                    padding: 0.5rem 0;
+                }
+                
+                .gpu-option {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.75rem 1rem;
+                    cursor: pointer;
+                    transition: background 0.15s;
+                }
+                
+                .gpu-option:hover {
+                    background: var(--bg);
+                }
+                
+                .gpu-option.selected {
+                    background: rgba(59, 130, 246, 0.1);
+                }
+                
+                .checkbox {
+                    font-size: 1.25rem;
+                    line-height: 1;
+                    color: var(--blue);
+                }
+                
+                .gpu-name {
+                    flex: 1;
+                    font-weight: 500;
+                }
+                
+                .manufacturer {
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                    background: var(--bg);
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 4px;
+                }
+                
+                .no-results {
+                    padding: 2rem;
+                    text-align: center;
+                    color: var(--text-muted);
+                }
+                
+                .dropdown-footer {
+                    padding: 0.75rem 1rem;
+                    border-top: 1px solid var(--border);
+                    text-align: center;
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                }
+                
+                .text-muted {
+                    color: var(--text-muted);
                 }
             `}</style>
         </div>

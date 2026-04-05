@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { OrganizationSchema, WebSiteSchema } from '@/components/schema'
+import { AuthProvider } from '@/lib/auth-context'
 
 export const metadata: Metadata = {
     title: { default: 'GPU Drip — GPU Price Tracker & Deal Alerts', template: '%s | GPU Drip' },
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 `}} />
             </head>
             <body>
+                <AuthProvider>
                 <nav className="nav" style={{ background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid #2a2a2a' }}>
                     <div className="container nav__inner">
                         <a href="/" className="nav__brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -106,6 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         </p>
                     </div>
                 </footer>
+                </AuthProvider>
             </body>
         </html>
     )

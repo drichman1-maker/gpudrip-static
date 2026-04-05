@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import GPUSelector from './GPUSelector'
+import { useAuth } from '@/lib/auth-context'
 
 const BACKEND_URL = 'https://gpudrip-backend.fly.dev'
 
@@ -14,6 +15,7 @@ const FALLBACK_GPUS: GPU[] = [
         current_price_usd: 1999,
         msrp_usd: 1999,
         brand: 'nvidia',
+        manufacturer: 'NVIDIA',
         architecture: 'Blackwell',
         generation: 'RTX 50',
         vram_gb: 32,
@@ -26,6 +28,7 @@ const FALLBACK_GPUS: GPU[] = [
         current_price_usd: 1299,
         msrp_usd: 1299,
         brand: 'nvidia',
+        manufacturer: 'NVIDIA',
         architecture: 'Blackwell',
         generation: 'RTX 50',
         vram_gb: 16,
@@ -38,6 +41,7 @@ const FALLBACK_GPUS: GPU[] = [
         current_price_usd: 899,
         msrp_usd: 899,
         brand: 'nvidia',
+        manufacturer: 'NVIDIA',
         architecture: 'Blackwell',
         generation: 'RTX 50',
         vram_gb: 16,
@@ -50,6 +54,7 @@ const FALLBACK_GPUS: GPU[] = [
         current_price_usd: 899,
         msrp_usd: 899,
         brand: 'amd',
+        manufacturer: 'AMD',
         architecture: 'RDNA 4',
         generation: 'RX 9000',
         vram_gb: 16,
@@ -62,6 +67,7 @@ const FALLBACK_GPUS: GPU[] = [
         current_price_usd: 649,
         msrp_usd: 649,
         brand: 'amd',
+        manufacturer: 'AMD',
         architecture: 'RDNA 4',
         generation: 'RX 9000',
         vram_gb: 12,
@@ -81,6 +87,7 @@ interface GPU {
     vram_gb: number
     in_stock?: boolean
     price_change_percent: number
+    manufacturer?: string
 }
 
 interface Alert {
@@ -94,16 +101,29 @@ interface Alert {
 }
 
 export default function AlertsClient() {
+    let auth
+    let authError = null
+    
+    try {
+        auth = useAuth()
+        console.log('[AlertsClient] Auth loaded:', { user: auth?.user?.email, loading: auth?.loading })
+    } catch (err: any) {
+        authError = err
+        console.error('[AlertsClient] Auth context error:', err.message)
+    }
+    
+    const user = auth?.user || null
+    const signInWithGoogle = auth?.signInWithGoogle || (async () => { console.warn('Google sign-in not available') })
+    const authLoading = auth?.loading || false
+    
     const [gpus, setGpus] = useState<GPU[]>(FALLBACK_GPUS)
     const [loading, setLoading] = useState(false)
-    const [selectedGpu, setSelectedGpu] = useState('')
+    const [selectedGpus, setSelectedGpus] = useState<string[]>([])
     const [targetPrice, setTargetPrice] = useState('')
-    const [email, setEmail] = useState('')
     const [submitting, setSubmitting] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
     const [userAlerts, setUserAlerts] = useState<Alert[]>([])
     const [showManage, setShowManage] = useState(false)
-    const [manageEmail, setManageEmail] = useState('')
 
     // Fetch GPUs on mount
     useEffect(() => {
@@ -113,7 +133,13 @@ export default function AlertsClient() {
                 return r.json()
             })
             .then(data => {
-                setGpus(Array.isArray(data) ? data : (data.gpus || []))
+                const gpuData = Array.isArray(data) ? data : (data.gpus || [])
+                // Map brand to manufacturer for GPUSelector
+                const processedGpus = gpuData.map((g: any) => ({
+                    ...g,
+                    manufacturer: g.brand === 'nvidia' ? 'NVIDIA' : g.brand === 'amd' ? 'AMD' : 'Intel'
+                }))
+                setGpus(processedGpus)
                 setLoading(false)
             })
             .catch(err => {
@@ -124,60 +150,81 @@ export default function AlertsClient() {
             })
     }, [])
 
-    // Update target price when GPU selected
+    // Update target price when first GPU selected
     useEffect(() => {
-        if (selectedGpu) {
-            const gpu = gpus.find(g => g.id === selectedGpu)
+        if (selectedGpus.length > 0) {
+            const gpu = gpus.find(g => g.id === selectedGpus[0])
             if (gpu) {
                 // Suggest 10% below current price
                 const suggested = Math.floor(gpu.current_price_usd * 0.9)
                 setTargetPrice(suggested.toString())
             }
         }
-    }, [selectedGpu, gpus])
+    }, [selectedGpus, gpus])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedGpu || !targetPrice || !email) return
+        if (selectedGpus.length === 0 || !targetPrice || !user?.email) return
+        
+        const email = user.email
 
         setSubmitting(true)
         setMessage(null)
 
-        const gpu = gpus.find(g => g.id === selectedGpu)
-        if (!gpu) return
+        const targetPriceNum = parseInt(targetPrice)
+        const results = []
+        const errors = []
 
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/alerts`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: email.toLowerCase().trim(),
-                    gpu_id: selectedGpu,
-                    gpu_name: gpu.model,
-                    target_price: parseInt(targetPrice),
-                }),
-            })
+        // Create alerts for all selected GPUs
+        for (const gpuId of selectedGpus) {
+            const gpu = gpus.find(g => g.id === gpuId)
+            if (!gpu) continue
 
-            if (response.ok) {
-                setMessage({ type: 'success', text: `Alert set for ${gpu.model} at $${targetPrice}! Check your email to confirm.` })
-                setSelectedGpu('')
-                setTargetPrice('')
-            } else {
-                const err = await response.json()
-                setMessage({ type: 'error', text: err.error || 'Failed to create alert' })
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/alerts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email.toLowerCase().trim(),
+                        gpu_id: gpuId,
+                        gpu_name: gpu.model,
+                        target_price: targetPriceNum,
+                    }),
+                })
+
+                if (response.ok) {
+                    results.push(gpu.model)
+                } else {
+                    const err = await response.json()
+                    errors.push(`${gpu.model}: ${err.error || 'Failed'}`)
+                }
+            } catch (err) {
+                errors.push(`${gpu.model}: Network error`)
             }
-        } catch (err) {
-            setMessage({ type: 'error', text: 'Network error. Please try again.' })
-        } finally {
-            setSubmitting(false)
         }
+
+        if (results.length > 0) {
+            const gpuNames = results.length === 1 ? results[0] : `${results.length} GPUs`
+            setMessage({ 
+                type: 'success', 
+                text: `Alert${results.length > 1 ? 's' : ''} set for ${gpuNames} at $${targetPrice}! Check your email to confirm.` 
+            })
+            setSelectedGpus([])
+            setTargetPrice('')
+        }
+
+        if (errors.length > 0) {
+            setMessage({ type: 'error', text: errors.join(', ') })
+        }
+
+        setSubmitting(false)
     }
 
     const fetchUserAlerts = async () => {
-        if (!manageEmail) return
+        if (!user?.email) return
         
         try {
-            const response = await fetch(`${BACKEND_URL}/api/alerts?email=${encodeURIComponent(manageEmail)}`)
+            const response = await fetch(`${BACKEND_URL}/api/alerts?email=${encodeURIComponent(user.email)}`)
             if (response.ok) {
                 const data = await response.json()
                 setUserAlerts(data.alerts || [])
@@ -188,11 +235,13 @@ export default function AlertsClient() {
     }
 
     const deleteAlert = async (alertId: string) => {
+        if (!user?.email) return
+        
         try {
             const response = await fetch(`${BACKEND_URL}/api/alerts/${alertId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: manageEmail }),
+                body: JSON.stringify({ email: user.email }),
             })
 
             if (response.ok) {
@@ -203,7 +252,7 @@ export default function AlertsClient() {
         }
     }
 
-    const selectedGpuData = gpus.find(g => g.id === selectedGpu)
+    const selectedGpuData = selectedGpus.length > 0 ? gpus.find(g => g.id === selectedGpus[0]) : null
 
     return (
         <div className="container" style={{ padding: '48px 24px', maxWidth: 700 }}>
@@ -233,6 +282,85 @@ export default function AlertsClient() {
                 </p>
             </div>
 
+            {/* Auth Error Display */}
+            {authError && (
+                <div className="card" style={{ 
+                    padding: 20, 
+                    marginBottom: 24, 
+                    background: 'rgba(239,68,68,0.1)',
+                    border: '1px solid rgba(239,68,68,0.3)',
+                    borderRadius: 'var(--radius-lg)',
+                    color: '#ef4444'
+                }}>
+                    <strong>Auth Error:</strong> {authError.message}
+                </div>
+            )}
+
+            {/* Sign In Prompt */}
+            {!user && !authLoading && (
+                <div className="card" style={{ 
+                    padding: 40, 
+                    marginBottom: 32, 
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-lg)',
+                    textAlign: 'center'
+                }}>
+                    <div style={{ 
+                        width: 64,
+                        height: 64,
+                        borderRadius: 'var(--radius-lg)',
+                        background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(168,85,247,0.12))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 32,
+                        margin: '0 auto 20px'
+                    }}>
+                        🔔
+                    </div>
+                    <h2 style={{ margin: '0 0 12px', fontSize: '1.4rem', color: 'var(--text-primary)' }}>
+                        Sign in to Create Alerts
+                    </h2>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
+                        Get instant email notifications when GPU prices drop to your target.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+                        <button
+                            onClick={async () => {
+                                console.log('[Alerts] Google sign-in clicked')
+                                try {
+                                    await signInWithGoogle()
+                                } catch (err) {
+                                    console.error('[Alerts] Google sign-in failed:', err)
+                                }
+                            }}
+                            style={{
+                                padding: '14px 28px',
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid var(--border)',
+                                background: '#fff',
+                                color: '#374151',
+                                fontSize: 15,
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 12
+                            }}
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
+                            Continue with Google
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Create Alert Form */}
             <div className="card" style={{ 
                 padding: 40, 
@@ -241,7 +369,8 @@ export default function AlertsClient() {
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-lg)',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                transition: 'box-shadow 0.3s ease'
+                transition: 'box-shadow 0.3s ease',
+                opacity: user ? 1 : 0.6
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
                     <div style={{
@@ -264,9 +393,9 @@ export default function AlertsClient() {
                     <div style={{ marginBottom: 24 }}>
                         <GPUSelector
                             gpus={gpus}
-                            selectedGpu={selectedGpu}
-                            onSelect={setSelectedGpu}
-                            loading={loading}
+                            selectedGpus={selectedGpus}
+                            onSelect={setSelectedGpus}
+                            disabled={submitting}
                         />
                     </div>
 
@@ -337,71 +466,56 @@ export default function AlertsClient() {
                         )}
                     </div>
 
-                    {/* Email */}
-                    <div style={{ marginBottom: 32 }}>
-                        <label style={{ display: 'block', marginBottom: 10, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
-                            Email Address
-                        </label>
-                        <div style={{ position: 'relative' }}>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="your@email.com"
-                                style={{
-                                    width: '100%',
-                                    padding: '14px 16px 14px 44px',
-                                    borderRadius: 'var(--radius-sm)',
-                                    border: '1px solid var(--border)',
-                                    background: 'var(--bg-elevated)',
-                                    color: 'var(--text-primary)',
-                                    fontSize: 15,
-                                    outline: 'none',
-                                    transition: 'border-color 0.15s'
-                                }}
-                                onFocus={(e) => e.target.style.borderColor = 'var(--border-focus)'}
-                                onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
-                                required
-                            />
-                            <div style={{
-                                position: 'absolute',
-                                left: 16,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                fontSize: 16,
-                                color: 'var(--text-muted)'
-                            }}>
-                                📧
-                            </div>
-                        </div>
-                        <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
-                            You'll receive a confirmation email before alerts start.
-                        </p>
-                    </div>
+          {/* Email from OAuth */}
+          <div style={{ marginBottom: 32 }}>
+            <label style={{ display: 'block', marginBottom: 10, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
+              Email
+            </label>
+            <div style={{ 
+              padding: '14px 16px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-surface)',
+              color: user?.email ? 'var(--text-primary)' : 'var(--text-muted)',
+              fontSize: 15
+            }}>
+              📧 {user?.email || (authLoading ? 'Loading...' : 'Not signed in')}
+            </div>
+            {!user && !authLoading && (
+              <p style={{ marginTop: 8, fontSize: 12, color: '#ef4444' }}>
+                Please sign in above to create alerts.
+              </p>
+            )}
+            {user && (
+              <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+                Alerts will be sent to this email address.
+              </p>
+            )}
+          </div>
 
                     {/* Submit */}
                     <button
                         type="submit"
-                        disabled={submitting || !selectedGpu || !targetPrice || !email}
+                        disabled={submitting || selectedGpus.length === 0 || !targetPrice || !user}
                         style={{
                             width: '100%',
                             padding: '16px 24px',
                             borderRadius: 'var(--radius-sm)',
                             border: 'none',
-                            background: submitting || !selectedGpu || !targetPrice || !email 
+                            background: submitting || selectedGpus.length === 0 || !targetPrice || !user 
                                 ? 'var(--bg-hover)' 
                                 : 'linear-gradient(135deg, var(--blue), var(--purple))',
-                            color: submitting || !selectedGpu || !targetPrice || !email 
+                            color: submitting || selectedGpus.length === 0 || !targetPrice || !user 
                                 ? 'var(--text-muted)' 
                                 : '#fff',
                             fontSize: 15,
                             fontWeight: 600,
-                            cursor: submitting || !selectedGpu || !targetPrice || !email ? 'not-allowed' : 'pointer',
+                            cursor: submitting || selectedGpus.length === 0 || !targetPrice || !user ? 'not-allowed' : 'pointer',
                             transition: 'all 0.15s',
                             transform: submitting ? 'scale(0.98)' : 'scale(1)'
                         }}
                         onMouseEnter={(e) => {
-                            if (!submitting && selectedGpu && targetPrice && email) {
+                            if (!submitting && selectedGpus.length > 0 && targetPrice && user) {
                                 e.currentTarget.style.transform = 'scale(1.02)'
                                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.3)'
                             }
@@ -421,10 +535,12 @@ export default function AlertsClient() {
                                     borderRadius: '50%',
                                     animation: 'spin 1s linear infinite'
                                 }}></span>
-                                Creating Alert...
+                                Creating {selectedGpus.length > 1 ? `${selectedGpus.length} Alerts` : 'Alert'}...
                             </span>
+                        ) : !user ? (
+                            'Sign in to Create Alert'
                         ) : (
-                            <>🎯 Create Price Alert</>
+                            <>🎯 Create {selectedGpus.length > 1 ? `${selectedGpus.length} Price Alerts` : 'Price Alert'}</>
                         )}
                     </button>
                 </form>
@@ -501,21 +617,17 @@ export default function AlertsClient() {
                     </button>
                 ) : (
                     <div>
-                        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-                            <input
-                                type="email"
-                                value={manageEmail}
-                                onChange={(e) => setManageEmail(e.target.value)}
-                                placeholder="Enter your email"
-                                style={{
-                                    flex: 1,
-                                    padding: '10px 14px',
-                                    borderRadius: 8,
-                                    border: '1px solid var(--border)',
-                                    background: 'var(--bg-surface)',
-                                    color: 'var(--text-primary)'
-                                }}
-                            />
+                        <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center' }}>
+                            <div style={{ 
+                                flex: 1,
+                                padding: '10px 14px',
+                                borderRadius: 8,
+                                border: '1px solid var(--border)',
+                                background: 'var(--bg-surface)',
+                                color: 'var(--text-secondary)'
+                            }}>
+                                📧 {user?.email || 'Loading...'}
+                            </div>
                             <button 
                                 onClick={fetchUserAlerts}
                                 style={{
@@ -539,7 +651,7 @@ export default function AlertsClient() {
                                     e.currentTarget.style.boxShadow = 'none'
                                 }}
                             >
-                                🔍 Load Alerts
+                                🔍 Load My Alerts
                             </button>
                         </div>
 
@@ -586,7 +698,7 @@ export default function AlertsClient() {
                                     </div>
                                 ))}
                             </div>
-                        ) : manageEmail ? (
+                        ) : user?.email ? (
                             <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: 20 }}>
                                 No alerts found for this email.
                             </p>

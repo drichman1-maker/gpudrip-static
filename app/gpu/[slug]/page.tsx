@@ -2,9 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { fetchGPUBySlug, fetchGPUs } from '@/lib/api'
-import { getPriceHistory, getPriceStats } from '@/lib/price-history'
 import { GPUProductSchema, BreadcrumbSchema, GPUFAQSchema } from '@/components/schema'
-import PriceChart from '@/components/price-chart'
+import PriceHistoryClient from '@/components/price-history-client'
 
 type Props = {
     params: Promise<{ slug: string }>
@@ -47,8 +46,6 @@ export default async function GPUPage({ params }: Props) {
 
     // Use retailers from API response
     const retailerData = gpu.retailers || {}
-    const priceHistory = getPriceHistory(slug)
-    const priceStats = getPriceStats(slug, gpu.current_price_usd)
     const retailerNames = Object.values(retailerData).map(r => r.name)
     const savings = gpu.msrp_usd - gpu.current_price_usd
     const savingsPercent = gpu.msrp_usd > 0 ? Math.round((savings / gpu.msrp_usd) * 100) : 0
@@ -212,8 +209,9 @@ export default async function GPUPage({ params }: Props) {
                         const stockColor = isVerified
                             ? (data.inStock ? '#22c55e' : '#ef4444')
                             : '#eab308'
-                        // Use affiliate URL if available
-                        const linkUrl = data.affiliateUrl || data.url
+                        // Use redirect URL for tracking
+                        const directUrl = data.affiliateUrl || data.url
+                        const linkUrl = `/redirect?retailer=${retailer}&url=${encodeURIComponent(directUrl || '')}&query=${encodeURIComponent(gpu.model)}`
 
                         return (
                             <a
@@ -255,52 +253,13 @@ export default async function GPUPage({ params }: Props) {
                 </div>
             </section>
 
-            {/* Price History */}
-            <section style={{ marginBottom: 48 }}>
-                <h2 style={{ marginBottom: 20 }}>Price History</h2>
-
-                {/* Stats Cards */}
-                {priceStats && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 24 }}>
-                        <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: 12, padding: 20 }}>
-                            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Current</div>
-                            <div style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>${priceStats.current}</div>
-                            <div style={{ fontSize: 12, color: priceStats.current < priceStats.avg ? '#22c55e' : '#ef4444', marginTop: 4 }}>
-                                {priceStats.current < priceStats.avg ? '↓' : '↑'} {Math.round(Math.abs((priceStats.current - priceStats.avg) / priceStats.avg) * 100)}% vs avg
-                            </div>
-                        </div>
-                        <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: 12, padding: 20 }}>
-                            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>30 Day Avg</div>
-                            <div style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>${priceStats.day30}</div>
-                            <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>Low: ${priceStats.min}</div>
-                        </div>
-                        <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: 12, padding: 20 }}>
-                            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>90 Day Low</div>
-                            <div style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#22c55e' }}>${priceStats.min}</div>
-                            <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>High: ${priceStats.max}</div>
-                        </div>
-                        <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: 12, padding: 20 }}>
-                            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>vs MSRP</div>
-                            <div style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-mono)', color: gpu.current_price_usd < gpu.msrp_usd ? '#22c55e' : '#ef4444' }}>
-                                {gpu.current_price_usd < gpu.msrp_usd ? '↓' : '↑'}${Math.abs(gpu.current_price_usd - gpu.msrp_usd)}
-                            </div>
-                            <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>MSRP: ${gpu.msrp_usd}</div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Chart */}
-                {priceHistory.length > 0 && (
-                    <div style={{ background: '#1a1a1a', borderRadius: 12, padding: 24 }}>
-                        <PriceChart
-                            data={priceHistory}
-                            currentPrice={gpu.current_price_usd}
-                            msrp={gpu.msrp_usd}
-                            gpuModel={gpu.model}
-                        />
-                    </div>
-                )}
-            </section>
+            {/* Price History - Client-side loaded */}
+            <PriceHistoryClient 
+                gpuSlug={slug}
+                gpuModel={gpu.model}
+                currentPrice={gpu.current_price_usd}
+                msrp={gpu.msrp_usd}
+            />
 
             {/* SEO Content Section - 300+ words */}
             <section className="card" style={{ marginBottom: 32 }}>
