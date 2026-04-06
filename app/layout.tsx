@@ -19,18 +19,22 @@ export const metadata: Metadata = {
         siteName: 'GPU Drip',
         title: 'GPU Drip — GPU Price Tracker & Deal Alerts',
         description: 'Real-time GPU price tracking, deal detection, and stock alerts across all major retailers.',
+        url: 'https://gpudrip.com',
         images: [
             {
-                url: '/og-image.svg',
+                url: 'https://gpudrip.com/og-image.png?v=3',
                 width: 1200,
                 height: 630,
-                alt: 'GPU Drip',
+                alt: 'GPU Drip - Live GPU Price Tracking',
             },
         ],
     },
     twitter: {
         card: 'summary_large_image',
-        images: ['/og-image.svg'],
+        site: '@gpudrip',
+        title: 'GPU Drip — GPU Price Tracker & Deal Alerts',
+        description: 'Real-time GPU price tracking, deal detection, and stock alerts across all major retailers.',
+        images: ['https://gpudrip.com/og-image.png?v=3'],
     },
     robots: { index: true, follow: true },
 }

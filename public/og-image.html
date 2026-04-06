@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 1200px;
+      height: 630px;
+      background: #080808;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+    .border {
+      position: absolute;
+      top: 50px;
+      left: 50px;
+      right: 50px;
+      bottom: 50px;
+      border: 2px solid #222;
+      border-radius: 20px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .logo-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-icon svg {
+      width: 48px;
+      height: 48px;
+    }
+    .title {
+      font-size: 72px;
+      font-weight: 800;
+      color: #f0f0f0;
+      letter-spacing: -2px;
+    }
+    .title span {
+      color: #00ff88;
+    }
+    .tagline {
+      font-size: 36px;
+      color: #888;
+      margin-bottom: 40px;
+    }
+    .gpus {
+      font-size: 28px;
+      color: #3b82f6;
+      margin-bottom: 40px;
+    }
+    .live {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      color: #22c55e;
+    }
+    .live-dot {
+      width: 16px;
+      height: 16px;
+      background: #22c55e;
+      border-radius: 50%;
+    }
+    .url {
+      position: absolute;
+      bottom: 80px;
+      font-size: 24px;
+      color: #00ff88;
+      font-weight: 600;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="border"></div>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2">
+        <path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+      </svg>
+    </div>
+    <div class="title">GPU<span>Drip</span></div>
+  </div>
+  <div class="tagline">Live GPU Price Tracking</div>
+  <div class="gpus">RTX 5090 • RX 9070 XT • RTX 5080</div>
+  <div class="live">
+    <div class="live-dot"></div>
+    <span>Live Prices</span>
+  </div>
+  <div class="url">gpudrip.com</div>
+</body>
+</html>
