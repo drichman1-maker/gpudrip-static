@@ -114,7 +114,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                 <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>— Price intelligence for GPUs</span>
                             </div>
                             <div style={{ display: 'flex', gap: 20 }}>
-                                {[['Terms', '/terms'], ['Privacy', '/privacy'], ['About', '/about']].map(([label, href]) => (
+                                {[['How to Use', '/how-to'], ['About', '/about'], ['Contact', '/contact'], ['Terms', '/terms'], ['Privacy', '/privacy']].map(([label, href]) => (
                                     <a key={href} href={href} style={{ color: 'var(--text-muted)', fontSize: 13 }}>{label}</a>
                                 ))}
                             </div>
