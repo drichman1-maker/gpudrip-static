@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { fetchGPUs } from '@/lib/api'
 import type { GPUWithRetailers } from '@/lib/api'
 import RetailerDropdown from '../RetailerDropdown'
+import GPUSortClient from './GPUSortClient'
 
 // Retailer configuration - matches GPU Drip backend retailers
 const RETAILER_CONFIG: Record<string, {
@@ -408,88 +409,13 @@ export default async function RetailerPage({
       {/* GPU Listings */}
       <section style={{ padding: '40px 0' }}>
         <div className="container">
-          <h2 style={{ marginBottom: 24, fontSize: '1.5rem' }}>
-            Available GPUs at {retailer.displayName}
-          </h2>
-
-          {inStockGPUs.length === 0 && outOfStockGPUs.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '60px 20px',
-              color: 'var(--text-muted)'
-            }}>
-              <p>No GPUs currently listed from this retailer.</p>
-              <Link href="/gpu" style={{ 
-                display: 'inline-block', 
-                marginTop: 16,
-                color: '#00ff88',
-                textDecoration: 'underline'
-              }}>
-                Browse all GPUs →
-              </Link>
-            </div>
-          ) : (
-            <>
-              {/* In Stock GPUs */}
-              {inStockGPUs.length > 0 && (
-                <div style={{ marginBottom: 40 }}>
-                  <h3 style={{ 
-                    marginBottom: 16, 
-                    fontSize: 14, 
-                    color: '#00ff88',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1
-                  }}>
-                    In Stock ({inStockGPUs.length})
-                  </h3>
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                    gap: 16
-                  }}>
-                    {inStockGPUs.map(gpu => (
-                      <GPUCard 
-                        key={gpu.id} 
-                        gpu={gpu} 
-                        retailerId={normalizedId}
-                        retailerColor={retailer.color}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Out of Stock GPUs */}
-              {outOfStockGPUs.length > 0 && (
-                <div>
-                  <h3 style={{ 
-                    marginBottom: 16, 
-                    fontSize: 14, 
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1
-                  }}>
-                    Out of Stock ({outOfStockGPUs.length})
-                  </h3>
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                    gap: 16,
-                    opacity: 0.6
-                  }}>
-                    {outOfStockGPUs.map(gpu => (
-                      <GPUCard 
-                        key={gpu.id} 
-                        gpu={gpu} 
-                        retailerId={normalizedId}
-                        retailerColor={retailer.color}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+          <GPUSortClient
+            inStockGPUs={inStockGPUs}
+            outOfStockGPUs={outOfStockGPUs}
+            retailerId={normalizedId}
+            retailerColor={retailer.color}
+            retailerName={retailer.displayName}
+          />
         </div>
       </section>
 
