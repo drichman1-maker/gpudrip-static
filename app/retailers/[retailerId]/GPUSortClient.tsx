@@ -20,6 +20,13 @@ const SORT_OPTIONS = [
   { value: 'vram', label: 'VRAM: High → Low' },
 ]
 
+const BRAND_PILLS = [
+  { key: 'all', label: 'All' },
+  { key: 'nvidia', label: 'NVIDIA' },
+  { key: 'amd', label: 'AMD' },
+  { key: 'intel', label: 'Intel' },
+]
+
 function getBestPrice(gpu: GPUWithRetailers) {
   const retailers = gpu.retailers || {}
   let best = { retailer: '', price: Infinity }
@@ -55,6 +62,14 @@ function sortGPUs(
       break
   }
   return sorted
+}
+
+function filterByBrand(
+  gpus: GPUSortProps['inStockGPUs'],
+  brand: string
+): GPUSortProps['inStockGPUs'] {
+  if (brand === 'all') return gpus
+  return gpus.filter(g => (g.brand || '').toLowerCase() === brand)
 }
 
 function GPUCard({ gpu, retailerId, retailerColor }: {
@@ -144,15 +159,68 @@ function GPUCard({ gpu, retailerId, retailerColor }: {
 
 export default function GPUSortClient({ inStockGPUs, outOfStockGPUs, retailerId, retailerColor, retailerName }: GPUSortProps) {
   const [sortBy, setSortBy] = useState('price-asc')
+  const [brandFilter, setBrandFilter] = useState('all')
   const [isOpen, setIsOpen] = useState(false)
 
-  const sortedInStock = sortGPUs(inStockGPUs, sortBy)
-  const sortedOutOfStock = sortGPUs(outOfStockGPUs, sortBy)
+  // Compute brand counts
+  const allGPUs = [...inStockGPUs, ...outOfStockGPUs]
+  const brandCounts: Record<string, number> = { all: allGPUs.length }
+  allGPUs.forEach(g => {
+    const b = (g.brand || '').toLowerCase()
+    brandCounts[b] = (brandCounts[b] || 0) + 1
+  })
+
+  // Filter then sort
+  const filteredInStock = filterByBrand(inStockGPUs, brandFilter)
+  const filteredOutOfStock = filterByBrand(outOfStockGPUs, brandFilter)
+  const sortedInStock = sortGPUs(filteredInStock, sortBy)
+  const sortedOutOfStock = sortGPUs(filteredOutOfStock, sortBy)
 
   const selectedLabel = SORT_OPTIONS.find(o => o.value === sortBy)?.label || 'Price: Low → High'
 
   return (
-    <>
+    <div>
+      {/* Brand Pill Toggles */}
+      <div style={{
+        display: 'flex',
+        gap: 8,
+        marginBottom: 20,
+        flexWrap: 'wrap',
+      }}>
+        {BRAND_PILLS.filter(p => p.key === 'all' || (brandCounts[p.key] || 0) > 0).map(pill => {
+          const isActive = brandFilter === pill.key
+          const pillColor = pill.key === 'nvidia' ? '#76b900' : pill.key === 'amd' ? '#ed1c24' : pill.key === 'intel' ? '#0071c5' : '#00ff88'
+          return (
+            <button
+              key={pill.key}
+              onClick={() => setBrandFilter(pill.key)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 20,
+                border: isActive ? `1px solid ${pillColor}` : '1px solid var(--border)',
+                background: isActive ? `${pillColor}20` : 'var(--card)',
+                color: isActive ? pillColor : 'var(--text-secondary)',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              {pill.label}
+              <span style={{
+                fontSize: 11,
+                opacity: 0.7,
+              }}>
+                ({brandCounts[pill.key] || 0})
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
       {/* Sort Dropdown */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ fontSize: '1.5rem' }}>
@@ -219,7 +287,7 @@ export default function GPUSortClient({ inStockGPUs, outOfStockGPUs, retailerId,
         </div>
       </div>
 
-      {inStockGPUs.length === 0 && outOfStockGPUs.length === 0 ? (
+      {filteredInStock.length === 0 && filteredOutOfStock.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
           <p>No GPUs currently listed from this retailer.</p>
           <Link href="/gpu" style={{ display: 'inline-block', marginTop: 16, color: '#00ff88', textDecoration: 'underline' }}>
@@ -227,7 +295,7 @@ export default function GPUSortClient({ inStockGPUs, outOfStockGPUs, retailerId,
           </Link>
         </div>
       ) : (
-        <>
+        <div>
           {sortedInStock.length > 0 && (
             <div style={{ marginBottom: 40 }}>
               <h3 style={{ marginBottom: 16, fontSize: 14, color: '#00ff88', textTransform: 'uppercase' as const, letterSpacing: 1 }}>
@@ -253,8 +321,8 @@ export default function GPUSortClient({ inStockGPUs, outOfStockGPUs, retailerId,
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
-    </>
+    </div>
   )
 }

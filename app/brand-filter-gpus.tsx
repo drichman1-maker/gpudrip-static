@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { computePPD, isTop20PPD, getPPDRating, getPPDColor } from '@/lib/ppd';
 
 export type RetailerData = {
   name: string
@@ -16,7 +17,7 @@ export type GPUWithRetailers = {
   id: string
   slug: string
   model: string
-  brand: 'nvidia' | 'amd'
+  brand: 'nvidia' | 'amd' | 'intel'
   architecture: string
   generation: string
   vram_gb: number
@@ -27,6 +28,8 @@ export type GPUWithRetailers = {
   price_change_percent: number
   release_date: string
   active: boolean
+  benchmark_score?: number | null
+  recommended_psu?: number | null
   retailers: Record<string, RetailerData>
   stockStatus: 'in_stock' | 'out_of_stock' | 'unknown'
   stockVerified: boolean
@@ -39,7 +42,7 @@ type BrandFilterGPUsProps = {
 export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
     const [brand, setBrand] = useState<'all'|'nvidia'|'amd'>('all');
     const [search, setSearch] = useState('');
-    const [sortBy, setSortBy] = useState<'default'|'deals'|'price-low'|'price-high'>('default');
+    const [sortBy, setSortBy] = useState<'default'|'deals'|'price-low'|'price-high'|'value'>('default');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const router = useRouter();
 
@@ -51,7 +54,11 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
 
     // Sort by deals (highest savings first), then price, then name
     const sorted = [...filtered].sort((a, b) => {
-        if (sortBy === 'deals') {
+        if (sortBy === 'value') {
+            const ppdA = computePPD(a.benchmark_score || 0, a.current_price_usd);
+            const ppdB = computePPD(b.benchmark_score || 0, b.current_price_usd);
+            return ppdB - ppdA;
+        } else if (sortBy === 'deals') {
             // Sort by price_change_percent (most negative = best deal)
             return a.price_change_percent - b.price_change_percent;
         } else if (sortBy === 'price-low') {
@@ -62,6 +69,12 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
         // Default: by price_change_percent (deals first)
         return a.price_change_percent - b.price_change_percent;
     });
+
+    // Compute all PPDs for top-20% badge
+    const allPPDs = useMemo(() => 
+        initialGPUs.map(g => computePPD(g.benchmark_score || 0, g.current_price_usd)),
+        [initialGPUs]
+    );
 
     const handleBrandChange = (newBrand: 'all'|'nvidia'|'amd') => {
         setBrand(newBrand);
@@ -217,6 +230,7 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
                         <option value="deals">Best Deals</option>
                         <option value="price-low">Price: Low to High</option>
                         <option value="price-high">Price: High to Low</option>
+                        <option value="value">Best Value (PPD)</option>
                     </select>
                 </div>
             </div>
@@ -237,6 +251,8 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
                             {sorted.slice(0, 10).map(gpu => {
                                 const isDeal = gpu.price_change_percent < 0;
                                 const isSurge = gpu.price_change_percent > 0;
+                                const ppd = computePPD(gpu.benchmark_score || 0, gpu.current_price_usd);
+                                const showBadge = isTop20PPD(ppd, allPPDs);
                                 
                                 return (
                                     <tr 
@@ -254,11 +270,29 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
                                         <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-secondary)' }}>
                                             ${gpu.msrp_usd}
                                         </td>
-                                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600 }}>
-                                            ${gpu.current_price_usd}
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600 }}>
+                                                    ${gpu.current_price_usd}
+                                                </span>
+                                                {showBadge && (
+                                                    <span style={{
+                                                        fontSize: 9,
+                                                        fontWeight: 700,
+                                                        padding: '2px 6px',
+                                                        borderRadius: 4,
+                                                        background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                                                        color: '#fff',
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.5px',
+                                                        whiteSpace: 'nowrap',
+                                                    }}>
+                                                        Top Value
+                                                    </span>
+                                                )}
+                                            </div>
                                             {gpu.price_change_percent !== 0 && (
                                                 <span style={{ 
-                                                    marginLeft: 8, 
                                                     fontSize: 12,
                                                     color: isDeal ? 'var(--green)' : 'var(--red)'
                                                 }}>

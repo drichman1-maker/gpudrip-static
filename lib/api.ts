@@ -25,6 +25,8 @@ export type GPUWithRetailers = {
   price_change_percent: number
   release_date: string
   active: boolean
+  benchmark_score?: number | null
+  recommended_psu?: number | null
   retailers: Record<string, RetailerData>
   stockStatus: 'in_stock' | 'out_of_stock' | 'unknown'
   stockVerified: boolean
