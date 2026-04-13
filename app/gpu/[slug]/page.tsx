@@ -211,7 +211,7 @@ export default async function GPUPage({ params }: Props) {
                         <div style={{ height: 8, background: '#1a1a1a', borderRadius: 4, overflow: 'hidden' }}>
                             <div style={{
                                 height: '100%',
-                                width: `${Math.min(100, (computePPD(gpu.benchmark_score, gpu.current_price_usd) / 40) * 100)}%`,
+                                width: `${Math.min(100, computePPD(gpu.benchmark_score, gpu.current_price_usd))}%`,
                                 background: `linear-gradient(90deg, ${getPPDColor(computePPD(gpu.benchmark_score, gpu.current_price_usd))}, ${getPPDColor(computePPD(gpu.benchmark_score, gpu.current_price_usd))}88)`,
                                 borderRadius: 4,
                                 transition: 'width 0.5s ease',

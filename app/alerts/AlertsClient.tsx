@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import GPUSelector from './GPUSelector'
 import { useAuth } from '@/lib/auth-context'
 
-const BACKEND_URL = 'https://gpudrip-backend.fly.dev'
+const BACKEND_URL = 'https://gpudrip-backend-icy-night-2201.fly.dev'
 
 // Fallback GPU data in case API fails
 const FALLBACK_GPUS: GPU[] = [

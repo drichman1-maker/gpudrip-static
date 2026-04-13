@@ -1,7 +1,7 @@
 // Price history API client
 // Fetches real price history from gpudrip-backend
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://gpudrip-backend.fly.dev'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://gpudrip-backend-icy-night-2201.fly.dev'
 
 export type PricePoint = {
   date: string

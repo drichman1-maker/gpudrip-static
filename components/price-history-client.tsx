@@ -26,7 +26,7 @@ export default function PriceHistoryClient({
     async function loadPriceHistory() {
       try {
         setLoading(true)
-        const url = `https://gpudrip-backend.fly.dev/api/gpus/${gpuSlug}/price-history?days=90`
+        const url = `https://gpudrip-backend-icy-night-2201.fly.dev/api/gpus/${gpuSlug}/price-history?days=90`
         console.log('[DEBUG] Fetching from:', url)
         
         const response = await fetch(url)
@@ -103,7 +103,7 @@ export default function PriceHistoryClient({
             History will appear after 24h of monitoring
           </p>
           <a 
-            href={`https://gpudrip-backend.fly.dev/api/gpus/${gpuSlug}/price-history?days=90`}
+            href={`https://gpudrip-backend-icy-night-2201.fly.dev/api/gpus/${gpuSlug}/price-history?days=90`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: '#2563eb', fontSize: 12, textDecoration: 'underline' }}
