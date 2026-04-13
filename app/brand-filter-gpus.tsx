@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { computePPD, isTop20PPD, getPPDRating, getPPDColor } from '@/lib/ppd';
+import { getPSUColor } from '@/lib/ppd';
 
 export type RetailerData = {
   name: string
@@ -54,11 +54,7 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
 
     // Sort by deals (highest savings first), then price, then name
     const sorted = [...filtered].sort((a, b) => {
-        if (sortBy === 'value') {
-            const ppdA = computePPD(a.benchmark_score || 0, a.current_price_usd);
-            const ppdB = computePPD(b.benchmark_score || 0, b.current_price_usd);
-            return ppdB - ppdA;
-        } else if (sortBy === 'deals') {
+        if (sortBy === 'value' || sortBy === 'deals') {
             // Sort by price_change_percent (most negative = best deal)
             return a.price_change_percent - b.price_change_percent;
         } else if (sortBy === 'price-low') {
@@ -66,13 +62,12 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
         } else if (sortBy === 'price-high') {
             return b.current_price_usd - a.current_price_usd;
         }
-        // Default: by price_change_percent (deals first)
         return a.price_change_percent - b.price_change_percent;
     });
 
-    // Compute all PPDs for top-20% badge
-    const allPPDs = useMemo(() => 
-        initialGPUs.map(g => computePPD(g.benchmark_score || 0, g.current_price_usd)),
+    // Compute top deals for badge (top 20% by discount %)
+    const allDiscounts = useMemo(() =>
+        initialGPUs.map(g => Math.abs(g.price_change_percent || 0)),
         [initialGPUs]
     );
 
@@ -251,8 +246,10 @@ export default function BrandFilterGPUs({ initialGPUs }: BrandFilterGPUsProps) {
                             {sorted.slice(0, 10).map(gpu => {
                                 const isDeal = gpu.price_change_percent < 0;
                                 const isSurge = gpu.price_change_percent > 0;
-                                const ppd = computePPD(gpu.benchmark_score || 0, gpu.current_price_usd);
-                                const showBadge = isTop20PPD(ppd, allPPDs);
+                                const discount = Math.abs(gpu.price_change_percent || 0);
+                                const sortedDiscounts = [...allDiscounts].sort((a, b) => b - a);
+                                const threshold = sortedDiscounts[Math.floor(sortedDiscounts.length * 0.2)] || 0;
+                                const showBadge = discount >= threshold && discount > 0;
                                 
                                 return (
                                     <tr 

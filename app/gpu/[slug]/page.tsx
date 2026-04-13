@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { fetchGPUBySlug, fetchGPUs } from '@/lib/api'
 import { GPUProductSchema, BreadcrumbSchema, GPUFAQSchema } from '@/components/schema'
 import PriceHistoryClient from '@/components/price-history-client'
-import { computePPD, getPPDColor, getPPDRating, getPSUColor } from '@/lib/ppd'
+import { getPSUColor } from '@/lib/ppd'
 
 type Props = {
     params: Promise<{ slug: string }>
@@ -197,68 +197,42 @@ export default async function GPUPage({ params }: Props) {
                 </div>
             </section>
 
-            {/* PPD & Build Compatibility */}
-            {gpu.benchmark_score && (
+            {/* Build Compatibility */}
+            {gpu.recommended_psu && (
                 <section className="card" style={{ marginBottom: 32 }}>
-                    <h2 style={{ marginBottom: 20 }}>Performance-per-Dollar</h2>
-                    <div style={{ marginBottom: 20 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-                            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Value Rating</span>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: getPPDColor(computePPD(gpu.benchmark_score, gpu.current_price_usd)) }}>
-                                {getPPDRating(computePPD(gpu.benchmark_score, gpu.current_price_usd))} — {computePPD(gpu.benchmark_score, gpu.current_price_usd).toFixed(1)} PPD
-                            </span>
+                    <h2 style={{ marginBottom: 20 }}>Build Compatibility</h2>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+                        <div style={{ padding: 16, background: '#0d0d0d', borderRadius: 8, border: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Min PSU</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: getPSUColor(gpu.recommended_psu) }}>
+                                    {gpu.recommended_psu}W
+                                </span>
+                                <span style={{
+                                    fontSize: 10,
+                                    fontWeight: 600,
+                                    padding: '2px 6px',
+                                    borderRadius: 4,
+                                    background: `${getPSUColor(gpu.recommended_psu)}22`,
+                                    color: getPSUColor(gpu.recommended_psu),
+                                }}>
+                                    {gpu.recommended_psu <= 550 ? 'Efficient' : gpu.recommended_psu <= 750 ? 'Moderate' : gpu.recommended_psu <= 850 ? 'High' : 'Extreme'}
+                                </span>
+                            </div>
                         </div>
-                        <div style={{ height: 8, background: '#1a1a1a', borderRadius: 4, overflow: 'hidden' }}>
-                            <div style={{
-                                height: '100%',
-                                width: `${Math.min(100, computePPD(gpu.benchmark_score, gpu.current_price_usd))}%`,
-                                background: `linear-gradient(90deg, ${getPPDColor(computePPD(gpu.benchmark_score, gpu.current_price_usd))}, ${getPPDColor(computePPD(gpu.benchmark_score, gpu.current_price_usd))}88)`,
-                                borderRadius: 4,
-                                transition: 'width 0.5s ease',
-                            }} />
+                        <div style={{ padding: 16, background: '#0d0d0d', borderRadius: 8, border: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>TDP</div>
+                            <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                                {gpu.tdp_watts}W
+                            </div>
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                            Benchmark: {gpu.benchmark_score.toLocaleString()} · Price: ${gpu.current_price_usd}
+                        <div style={{ padding: 16, background: '#0d0d0d', borderRadius: 8, border: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>VRAM</div>
+                            <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                                {gpu.vram_gb}GB
+                            </div>
                         </div>
                     </div>
-
-                    {gpu.recommended_psu && (
-                        <>
-                            <h3 style={{ marginBottom: 12, fontSize: 16 }}>Build Compatibility</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-                                <div style={{ padding: 16, background: '#0d0d0d', borderRadius: 8, border: '1px solid var(--border)' }}>
-                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Min PSU</div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: getPSUColor(gpu.recommended_psu) }}>
-                                            {gpu.recommended_psu}W
-                                        </span>
-                                        <span style={{
-                                            fontSize: 10,
-                                            fontWeight: 600,
-                                            padding: '2px 6px',
-                                            borderRadius: 4,
-                                            background: `${getPSUColor(gpu.recommended_psu)}22`,
-                                            color: getPSUColor(gpu.recommended_psu),
-                                        }}>
-                                            {gpu.recommended_psu <= 550 ? 'Efficient' : gpu.recommended_psu <= 750 ? 'Moderate' : gpu.recommended_psu <= 850 ? 'High' : 'Extreme'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div style={{ padding: 16, background: '#0d0d0d', borderRadius: 8, border: '1px solid var(--border)' }}>
-                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>TDP</div>
-                                    <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-                                        {gpu.tdp_watts}W
-                                    </div>
-                                </div>
-                                <div style={{ padding: 16, background: '#0d0d0d', borderRadius: 8, border: '1px solid var(--border)' }}>
-                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>VRAM</div>
-                                    <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-                                        {gpu.vram_gb}GB
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
                 </section>
             )}
 
