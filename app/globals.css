@@ -204,7 +204,7 @@ h4 { font-size: 1rem; font-weight: 600; }
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(8,8,8,0.85);
+  background: rgba(10,10,10,0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
@@ -224,6 +224,7 @@ h4 { font-size: 1rem; font-weight: 600; }
   align-items: center;
   gap: 8px;
   color: var(--text-primary);
+  pointer-events: auto;
 }
 .nav__brand span { color: var(--blue); }
 .nav__links {
@@ -251,9 +252,11 @@ h4 { font-size: 1rem; font-weight: 600; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .container { padding: 0 16px; }
   .desktop-links { display: none !important; }
+  .mobile-menu-container { display: block !important; }
 }
 
 @media (min-width: 769px) {
+  .desktop-links { display: flex !important; }
   .mobile-menu-container { display: none !important; }
 }
 
