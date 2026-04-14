@@ -193,6 +193,7 @@ export default function MobileNav() {
           text-align: left;
           transition: all 0.15s ease;
           white-space: nowrap;
+          touch-action: manipulation;
         }
         
         .mobile-nav-link:hover {

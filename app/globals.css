@@ -225,6 +225,9 @@ h4 { font-size: 1rem; font-weight: 600; }
   gap: 8px;
   color: var(--text-primary);
   pointer-events: auto;
+  position: relative;
+  z-index: 51;
+  touch-action: manipulation;
 }
 .nav__brand span { color: var(--blue); }
 .nav__links {
@@ -238,6 +241,9 @@ h4 { font-size: 1rem; font-weight: 600; }
   font-weight: 500;
   color: var(--text-secondary);
   transition: all 0.15s;
+  position: relative;
+  z-index: 51;
+  touch-action: manipulation;
 }
 .nav__link:hover { color: var(--text-primary); background: var(--bg-hover); }
 .nav__link--active { color: var(--text-primary); }
