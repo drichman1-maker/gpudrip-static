@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 
 const navItems = [
-  { href: '/', label: 'GPUs', color: '#fff', border: '#333' },
+  { href: '/gpu', label: 'GPUs', color: '#fff', border: '#333' },
   { href: '/compare', label: 'Compare', color: '#ff6b35', border: '#ff6b35' },
   { href: '/retailers', label: 'Retailers', color: '#FF9900', border: '#FF9900' },
   { href: '/blog', label: 'Blog', color: '#22c55e', border: '#22c55e' },

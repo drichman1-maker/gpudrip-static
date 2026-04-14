@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import './globals.css'
 import { OrganizationSchema, WebSiteSchema } from '@/components/schema'
 import { AuthProvider } from '@/lib/auth-context'
@@ -64,7 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <AuthProvider>
                 <nav className="nav" style={{ background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid #2a2a2a' }}>
                     <div className="container nav__inner">
-                        <a href="/" className="nav__brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Link href="/" className="nav__brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ 
                                 width: '32px', 
                                 height: '32px', 
@@ -81,11 +82,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             <span style={{ fontWeight: 800, letterSpacing: '-0.5px' }}>
                                 GPU<span style={{ color: '#00ff88' }}>Drip</span>
                             </span>
-                        </a>
+                        </Link>
                         <div className="nav__links" style={{ display: 'flex', gap: 8 }}>
                             {/* Desktop links - hidden on mobile */}
                             <div className="desktop-links" style={{ display: 'flex', gap: 8 }}>
-                                <a href="/" className="nav__link" style={{ background: '#1a1a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #333', color: '#fff', fontWeight: 600, fontSize: 14 }}>GPUs</a>
+                                <a href="/gpu" className="nav__link" style={{ background: '#1a1a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #333', color: '#fff', fontWeight: 600, fontSize: 14 }}>GPUs</a>
                                 <a href="/compare" className="nav__link" style={{ background: '#1a1a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #ff6b35', color: '#ff6b35', fontWeight: 600, fontSize: 14 }}>Compare</a>
                                 <a href="/retailers" className="nav__link" style={{ background: '#1a1a2e', padding: '8px 16px', borderRadius: 8, border: '1px solid #FF9900', color: '#FF9900', fontWeight: 600, fontSize: 14 }}>Retailers</a>
                                 <a href="/blog" className="nav__link" style={{ background: '#1a3a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #22c55e', color: '#22c55e', fontWeight: 600, fontSize: 14 }}>Blog</a>
