@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import './globals.css'
 import { OrganizationSchema, WebSiteSchema } from '@/components/schema'
 import { AuthProvider } from '@/lib/auth-context'
@@ -65,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <AuthProvider>
                 <nav className="nav" style={{ background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid #2a2a2a' }}>
                     <div className="container nav__inner">
-                        <Link href="/" className="nav__brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <a href="/" className="nav__brand" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={(e) => { if (typeof window !== 'undefined' && window.location.pathname === '/') { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}>
                             <div style={{ 
                                 width: '32px', 
                                 height: '32px', 
@@ -75,14 +74,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                 alignItems: 'center',
                                 justifyContent: 'center'
                             }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" style={{ display: 'inline-block' }}>
                                     <path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
                                 </svg>
                             </div>
                             <span style={{ fontWeight: 800, letterSpacing: '-0.5px' }}>
                                 GPU<span style={{ color: '#00ff88' }}>Drip</span>
                             </span>
-                        </Link>
+                        </a>
                         <div className="nav__links" style={{ display: 'flex', gap: 8 }}>
                             {/* Desktop links - hidden on mobile */}
                             <div className="desktop-links" style={{ display: 'flex', gap: 8 }}>
