@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 
 const navItems = [
@@ -37,18 +38,18 @@ export default function MobileNav() {
         <div className="mobile-menu">
           <div className="mobile-menu-inner">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.href}
                 href={item.href}
                 className="mobile-nav-link"
-                style={{ 
+                style={{
                   color: item.color,
-                  borderColor: item.border 
+                  borderColor: item.border
                 }}
                 onClick={() => setIsOpen(false)}
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
             
             {/* Auth Section Divider */}
