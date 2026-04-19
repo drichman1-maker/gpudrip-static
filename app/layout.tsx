@@ -65,7 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <AuthProvider>
                 <nav className="nav" style={{ background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid #2a2a2a' }}>
                     <div className="container nav__inner">
-                        <a href="/" className="nav__brand" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={(e) => { if (typeof window !== 'undefined' && window.location.pathname === '/') { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}>
+                        <Link href="/" className="nav__brand" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                             <div style={{ 
                                 width: '32px', 
                                 height: '32px', 
@@ -82,7 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             <span style={{ fontWeight: 800, letterSpacing: '-0.5px' }}>
                                 GPU<span style={{ color: '#00ff88' }}>Drip</span>
                             </span>
-                        </a>
+                        </Link>
                         <div className="nav__links" style={{ display: 'flex', gap: 8 }}>
                             {/* Desktop links - hidden on mobile */}
                             <div className="desktop-links" style={{ display: 'flex', gap: 8 }}>
