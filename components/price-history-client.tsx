@@ -26,20 +26,28 @@ export default function PriceHistoryClient({
     async function loadPriceHistory() {
       try {
         setLoading(true)
-        const url = `https://gpudrip-backend-icy-night-2201.fly.dev/api/gpus/${gpuSlug}/price-history?days=90`
-        console.log('[DEBUG] Fetching from:', url)
-        
+        const url = `https://agg-api-hub.fly.dev/api/gpudrip/products/${gpuSlug}/price-history?days=90`
+
         const response = await fetch(url)
-        console.log('[DEBUG] Response status:', response.status)
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`)
         }
-        
+
         const data = await response.json()
-        console.log('[DEBUG] Got data:', data)
-        
-        setPriceHistory(data.history || [])
+
+        // Normalize: history entries have {date, retailer, price} — pick lowest price per day
+        const byDay: Record<string, number> = {}
+        for (const entry of (data.history || [])) {
+          const day = entry.date.slice(0, 10)
+          if (!byDay[day] || entry.price < byDay[day]) {
+            byDay[day] = entry.price
+          }
+        }
+        const normalized = Object.entries(byDay)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, price]) => ({ date, price }))
+        setPriceHistory(normalized)
         setError(null)
       } catch (err: any) {
         console.error('[DEBUG] Failed to load price history:', err)
@@ -102,14 +110,9 @@ export default function PriceHistoryClient({
           <p style={{ color: '#666', fontSize: 14, marginBottom: 16 }}>
             History will appear after 24h of monitoring
           </p>
-          <a 
-            href={`https://gpudrip-backend-icy-night-2201.fly.dev/api/gpus/${gpuSlug}/price-history?days=90`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: '#2563eb', fontSize: 12, textDecoration: 'underline' }}
-          >
-            Test API endpoint →
-          </a>
+          <p style={{ color: '#555', fontSize: 12 }}>
+            History will appear after the first scraper run.
+          </p>
         </div>
       </section>
     )
