@@ -21,6 +21,7 @@ const RETAILER_LABELS: Record<string, string> = {
     bestbuy: 'Best Buy',
     newegg: 'Newegg',
     microcenter: 'Micro Center',
+    abt: 'ABT',
 }
 
 export default async function RefurbPage() {

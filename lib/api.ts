@@ -37,9 +37,19 @@ export type GPUWithRetailers = {
 export type RefurbGPU = {
   id: string
   slug: string
+  name: string
   model: string
   brand: string
+  msrp: number
   msrp_usd: number
+  specs: { vram?: string; tdp?: string; architecture?: string }
+  inStock: boolean
+  lowestPrice: number | null
+  lowestRetailer: string | null
+  lowestUrl: string | null
+  lowestAffiliateUrl: string | null
+  savingsPct: number | null
+  prices: Record<string, { price: number; status: string; url: string; affiliateUrl: string | null }>
   retailers: { name: string; url: string; price: number; inStock: boolean; verified: boolean }[]
 }
 
@@ -214,12 +224,41 @@ export async function fetchRefurbGPUs(): Promise<RefurbGPU[]> {
           inStock: d.status === 'in_stock',
           verified: d.verified ?? false,
         }))
+
+      // Compute lowest in-stock price
+      const inStockRetailers = Object.entries<any>(p.prices || {}).filter(
+        ([, d]) => d?.price && d.status === 'in_stock'
+      )
+      const lowestEntry = inStockRetailers.sort(([, a], [, b]) => a.price - b.price)[0]
+      const lowestPrice = lowestEntry ? lowestEntry[1].price : null
+      const lowestRetailer = lowestEntry ? lowestEntry[0] : null
+      const lowestUrl = lowestEntry ? lowestEntry[1].url || null : null
+      const lowestAffiliateUrl = lowestEntry ? lowestEntry[1].affiliateUrl || null : null
+      const msrp = p.msrp || 0
+      const savingsPct = lowestPrice && msrp > 0 ? Math.round((1 - lowestPrice / msrp) * 100) : null
+
+      // Prices map for the "all prices" section
+      const prices: Record<string, any> = {}
+      for (const [key, d] of Object.entries<any>(p.prices || {})) {
+        if (d?.price) prices[key] = { price: d.price, status: d.status, url: d.url, affiliateUrl: d.affiliateUrl }
+      }
+
       return {
         id: p.id,
         slug: p.slug,
+        name: p.name || '',
         model,
         brand: deriveBrand(p.name || '', p.specs),
-        msrp_usd: p.msrp || 0,
+        msrp,
+        msrp_usd: msrp,
+        specs: { vram: p.specs?.vram, tdp: p.specs?.tdp, architecture: p.specs?.architecture },
+        inStock: inStockRetailers.length > 0,
+        lowestPrice,
+        lowestRetailer,
+        lowestUrl,
+        lowestAffiliateUrl,
+        savingsPct,
+        prices,
         retailers: retailerList,
       }
     })
