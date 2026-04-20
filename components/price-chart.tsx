@@ -34,7 +34,16 @@ export default function PriceChart({ data, currentPrice, msrp, gpuModel }: Price
   }
   
   const chartData = getFilteredData()
-  
+
+  if (chartData.length < 2) {
+    return (
+      <div style={{ padding: 32, textAlign: 'center', color: '#555' }}>
+        <p style={{ marginBottom: 8 }}>Not enough data to draw a chart yet.</p>
+        <p style={{ fontSize: 13 }}>Check back after the next scraper run.</p>
+      </div>
+    )
+  }
+
   // Format date for X-axis
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
