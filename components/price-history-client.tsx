@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import PriceChart from './price-chart'
-import { fetchPriceHistory, getPriceStats } from '@/lib/price-history'
+import { getPriceStats } from '@/lib/price-history'
 import type { PricePoint } from '@/lib/price-history'
 
 type PriceHistoryClientProps = {
@@ -12,11 +12,11 @@ type PriceHistoryClientProps = {
   msrp: number
 }
 
-export default function PriceHistoryClient({ 
-  gpuSlug, 
-  gpuModel, 
-  currentPrice, 
-  msrp 
+export default function PriceHistoryClient({
+  gpuSlug,
+  gpuModel,
+  currentPrice,
+  msrp
 }: PriceHistoryClientProps) {
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([])
   const [loading, setLoading] = useState(true)
@@ -26,23 +26,17 @@ export default function PriceHistoryClient({
     async function loadPriceHistory() {
       try {
         setLoading(true)
-        const url = `https://agg-api-hub.fly.dev/api/gpudrip/products/${gpuSlug}/price-history?days=90`
-
-        const response = await fetch(url)
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`)
-        }
-
+        const response = await fetch(
+          `https://agg-api-hub.fly.dev/api/gpudrip/products/${gpuSlug}/price-history?days=90`
+        )
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
         const data = await response.json()
 
-        // Normalize: history entries have {date, retailer, price} — pick lowest price per day
+        // Normalize: pick lowest price per day across all retailers
         const byDay: Record<string, number> = {}
         for (const entry of (data.history || [])) {
           const day = entry.date.slice(0, 10)
-          if (!byDay[day] || entry.price < byDay[day]) {
-            byDay[day] = entry.price
-          }
+          if (!byDay[day] || entry.price < byDay[day]) byDay[day] = entry.price
         }
         const normalized = Object.entries(byDay)
           .sort(([a], [b]) => a.localeCompare(b))
@@ -50,13 +44,11 @@ export default function PriceHistoryClient({
         setPriceHistory(normalized)
         setError(null)
       } catch (err: any) {
-        console.error('[DEBUG] Failed to load price history:', err)
         setError(err.message)
       } finally {
         setLoading(false)
       }
     }
-
     loadPriceHistory()
   }, [gpuSlug])
 
@@ -66,29 +58,17 @@ export default function PriceHistoryClient({
     return (
       <section style={{ marginBottom: 48 }}>
         <h2 style={{ marginBottom: 20 }}>Price History</h2>
-        <div style={{ 
-          background: '#1a1a1a', 
-          borderRadius: 12, 
-          padding: 48,
-          textAlign: 'center',
-          color: '#666'
+        <div style={{
+          background: '#1a1a1a', borderRadius: 12, padding: 48,
+          textAlign: 'center', color: '#666'
         }}>
-          <div style={{ 
-            width: 40, 
-            height: 40, 
-            border: '3px solid #333',
-            borderTop: '3px solid #2563eb',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 16px'
+          <div style={{
+            width: 40, height: 40, border: '3px solid #333',
+            borderTop: '3px solid #2563eb', borderRadius: '50%',
+            animation: 'spin 1s linear infinite', margin: '0 auto 16px'
           }} />
           <p>Loading price history...</p>
-          <style jsx>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
+          <style jsx>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
         </div>
       </section>
     )
@@ -98,19 +78,9 @@ export default function PriceHistoryClient({
     return (
       <section style={{ marginBottom: 48 }}>
         <h2 style={{ marginBottom: 20 }}>Price History</h2>
-        <div style={{ 
-          background: '#1a1a1a', 
-          borderRadius: 12, 
-          padding: 32,
-          textAlign: 'center'
-        }}>
-          <p style={{ color: '#888', marginBottom: 8 }}>
-            📊 Price tracking starts soon
-          </p>
-          <p style={{ color: '#666', fontSize: 14, marginBottom: 16 }}>
-            History will appear after 24h of monitoring
-          </p>
-          <p style={{ color: '#555', fontSize: 12 }}>
+        <div style={{ background: '#1a1a1a', borderRadius: 12, padding: 32, textAlign: 'center' }}>
+          <p style={{ color: '#888', marginBottom: 8 }}>📊 Price tracking starts soon</p>
+          <p style={{ color: '#555', fontSize: 14 }}>
             History will appear after the first scraper run.
           </p>
         </div>
@@ -122,7 +92,6 @@ export default function PriceHistoryClient({
     <section style={{ marginBottom: 48 }}>
       <h2 style={{ marginBottom: 20 }}>Price History</h2>
 
-      {/* Stats Cards */}
       {priceStats && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 24 }}>
           <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: 12, padding: 20 }}>
@@ -152,14 +121,8 @@ export default function PriceHistoryClient({
         </div>
       )}
 
-      {/* Chart */}
       <div style={{ background: '#1a1a1a', borderRadius: 12, padding: 24 }}>
-        <PriceChart
-          data={priceHistory}
-          currentPrice={currentPrice}
-          msrp={msrp}
-          gpuModel={gpuModel}
-        />
+        <PriceChart data={priceHistory} currentPrice={currentPrice} msrp={msrp} gpuModel={gpuModel} />
       </div>
     </section>
   )

@@ -89,6 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                 <Link href="/gpu" className="nav__link" style={{ background: '#1a1a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #333', color: '#fff', fontWeight: 600, fontSize: 14 }}>GPUs</Link>
                                 <Link href="/compare" className="nav__link" style={{ background: '#1a1a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #ff6b35', color: '#ff6b35', fontWeight: 600, fontSize: 14 }}>Compare</Link>
                                 <Link href="/retailers" className="nav__link" style={{ background: '#1a1a2e', padding: '8px 16px', borderRadius: 8, border: '1px solid #FF9900', color: '#FF9900', fontWeight: 600, fontSize: 14 }}>Retailers</Link>
+                                <Link href="/refurb" className="nav__link" style={{ background: '#001a0d', padding: '8px 16px', borderRadius: 8, border: '1px solid #00ff88', color: '#00ff88', fontWeight: 600, fontSize: 14 }}>Refurb</Link>
                                 <Link href="/blog" className="nav__link" style={{ background: '#1a3a1a', padding: '8px 16px', borderRadius: 8, border: '1px solid #22c55e', color: '#22c55e', fontWeight: 600, fontSize: 14 }}>Blog</Link>
                                 <Link href="/alerts" className="nav__link" style={{ background: '#1a1a3a', padding: '8px 16px', borderRadius: 8, border: '1px solid #4a90e2', color: '#4a90e2', fontWeight: 600, fontSize: 14 }}>Alerts</Link>
                                 <div style={{ marginLeft: 8 }}>

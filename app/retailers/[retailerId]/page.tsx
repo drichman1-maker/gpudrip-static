@@ -96,6 +96,26 @@ const RETAILER_CONFIG: Record<string, {
     cons: ['Business-focused', 'Higher prices for individuals'],
     logo: 'CD',
     website: 'https://cdw.com'
+  },
+  ebay: {
+    name: 'eBay',
+    displayName: 'eBay',
+    color: '#E53238',
+    description: 'eBay is the largest marketplace for refurbished and open-box GPUs. GPU Drip tracks Certified Refurbished listings from top-rated sellers with buyer protection and warranties.',
+    pros: ['Best refurb prices', 'Buyer protection', 'Money-back guarantee', 'Wide selection'],
+    cons: ['Seller variability', 'Condition may differ', 'Shipping time varies'],
+    logo: 'EB',
+    website: 'https://ebay.com'
+  },
+  abt: {
+    name: 'ABT',
+    displayName: 'ABT Electronics',
+    color: '#C8102E',
+    description: 'ABT Electronics is a family-owned electronics retailer based in Glenview, IL. They carry a selection of GPUs and PC components with competitive pricing and free shipping on most orders.',
+    pros: ['Free shipping', 'Price matching', 'Authorized dealer', 'Excellent customer service'],
+    cons: ['Single physical location (Illinois)', 'Smaller GPU selection than major retailers'],
+    logo: 'AB',
+    website: 'https://abt.com'
   }
 }
 
@@ -169,6 +189,8 @@ export async function generateStaticParams() {
     { retailerId: 'adorama' },
     { retailerId: 'antonline' },
     { retailerId: 'cdw' },
+    { retailerId: 'ebay' },
+    { retailerId: 'abt' },
     // Aliases for SEO-friendly URLs
     { retailerId: 'best-buy' },
     { retailerId: 'bh-photo' },

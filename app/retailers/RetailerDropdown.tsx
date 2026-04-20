@@ -12,11 +12,13 @@ const RETAILERS = [
   { id: 'adorama', name: 'Adorama', color: '#F37021' },
   { id: 'antonline', name: 'Antonline', color: '#00A651' },
   { id: 'cdw', name: 'CDW', color: '#C41230' },
+  { id: 'ebay', name: 'eBay', color: '#E53238' },
+  { id: 'abt', name: 'ABT', color: '#C8102E' },
 ]
 
 export default function RetailerDropdown({ currentRetailer }: { currentRetailer: string }) {
   const [isOpen, setIsOpen] = useState(false)
-  
+
   const current = RETAILERS.find(r => r.id === currentRetailer) || RETAILERS[0]
 
   return (
@@ -45,14 +47,14 @@ export default function RetailerDropdown({ currentRetailer }: { currentRetailer:
           background: current.color
         }} />
         <span>{current.name}</span>
-        <svg 
-          width="12" 
-          height="12" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
           strokeWidth="2"
-          style={{ 
+          style={{
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.2s'
           }}
@@ -63,7 +65,7 @@ export default function RetailerDropdown({ currentRetailer }: { currentRetailer:
 
       {isOpen && (
         <>
-          <div 
+          <div
             style={{
               position: 'fixed',
               inset: 0,
@@ -117,12 +119,12 @@ export default function RetailerDropdown({ currentRetailer }: { currentRetailer:
                   {retailer.name}
                 </span>
                 {retailer.id === currentRetailer && (
-                  <svg 
-                    width="14" 
-                    height="14" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="#00ff88" 
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#00ff88"
                     strokeWidth="2"
                     style={{ marginLeft: 'auto' }}
                   >
