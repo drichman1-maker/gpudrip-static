@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import GPUSelector from './GPUSelector'
 import { useAuth } from '@/lib/auth-context'
 
-const BACKEND_URL = 'https://gpudrip-backend-icy-night-2201.fly.dev'
+const BACKEND_URL = 'https://agg-api-hub.fly.dev'
 
 // Fallback GPU data in case API fails
 const FALLBACK_GPUS: GPU[] = [
@@ -92,12 +92,11 @@ interface GPU {
 
 interface Alert {
     id: string
-    gpu_id: string
-    gpu_name: string
-    target_price: number
-    current_price?: number
-    is_active: boolean
-    created_at: string
+    productId: string
+    gpu_name?: string  // resolved client-side from gpu list
+    targetPrice: number
+    isActive: boolean
+    createdAt: string
 }
 
 export default function AlertsClient() {
@@ -127,24 +126,35 @@ export default function AlertsClient() {
 
     // Fetch GPUs on mount
     useEffect(() => {
-        fetch(`${BACKEND_URL}/api/gpus`)
+        fetch(`${BACKEND_URL}/api/gpudrip/products`)
             .then(r => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`)
                 return r.json()
             })
-            .then(data => {
-                const gpuData = Array.isArray(data) ? data : (data.gpus || [])
-                // Map brand to manufacturer for GPUSelector
-                const processedGpus = gpuData.map((g: any) => ({
-                    ...g,
-                    manufacturer: g.brand === 'nvidia' ? 'NVIDIA' : g.brand === 'amd' ? 'AMD' : 'Intel'
-                }))
+            .then((data: any[]) => {
+                const regular = data.filter((p: any) => !p.isRefurb && !p.slug?.startsWith('refurb-'))
+                const processedGpus = regular.map((p: any) => {
+                    const prices = Object.values<any>(p.prices || {}).filter((d: any) => d?.price && d.status === 'in_stock')
+                    const lowestPrice = prices.length > 0 ? Math.min(...prices.map((d: any) => d.price)) : p.msrp
+                    return {
+                        id: p.id,
+                        model: p.name,
+                        current_price_usd: lowestPrice,
+                        msrp_usd: p.msrp,
+                        brand: p.category as 'nvidia' | 'amd' | 'intel',
+                        manufacturer: p.category === 'nvidia' ? 'NVIDIA' : p.category === 'amd' ? 'AMD' : 'Intel',
+                        architecture: p.specs?.architecture || '',
+                        generation: '',
+                        vram_gb: parseInt(String(p.specs?.vram || '0')) || 0,
+                        in_stock: prices.length > 0,
+                        price_change_percent: 0,
+                    }
+                })
                 setGpus(processedGpus)
                 setLoading(false)
             })
             .catch(err => {
                 console.error('Failed to load GPUs, using fallback data:', err)
-                // Use fallback data if API fails
                 setGpus(FALLBACK_GPUS)
                 setLoading(false)
             })
@@ -181,14 +191,13 @@ export default function AlertsClient() {
             if (!gpu) continue
 
             try {
-                const response = await fetch(`${BACKEND_URL}/api/alerts`, {
+                const response = await fetch(`${BACKEND_URL}/api/gpudrip/alerts`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         email: email.toLowerCase().trim(),
-                        gpu_id: gpuId,
-                        gpu_name: gpu.model,
-                        target_price: targetPriceNum,
+                        productId: gpuId,
+                        targetPrice: targetPriceNum,
                     }),
                 })
 
@@ -224,10 +233,15 @@ export default function AlertsClient() {
         if (!user?.email) return
         
         try {
-            const response = await fetch(`${BACKEND_URL}/api/alerts?email=${encodeURIComponent(user.email)}`)
+            const response = await fetch(`${BACKEND_URL}/api/gpudrip/alerts?email=${encodeURIComponent(user.email)}`)
             if (response.ok) {
                 const data = await response.json()
-                setUserAlerts(data.alerts || [])
+                // Resolve gpu_name from local gpu list
+                const alerts = (data.alerts || []).map((a: any) => ({
+                    ...a,
+                    gpu_name: gpus.find(g => g.id === a.productId)?.model || 'Unknown GPU',
+                }))
+                setUserAlerts(alerts)
             }
         } catch (err) {
             console.error('Failed to fetch alerts:', err)
@@ -238,7 +252,7 @@ export default function AlertsClient() {
         if (!user?.email) return
         
         try {
-            const response = await fetch(`${BACKEND_URL}/api/alerts/${alertId}`, {
+            const response = await fetch(`${BACKEND_URL}/api/gpudrip/alerts/${alertId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: user.email }),
@@ -671,10 +685,10 @@ export default function AlertsClient() {
                                         }}
                                     >
                                         <div>
-                                            <div style={{ fontWeight: 600, marginBottom: 4 }}>{alert.gpu_name}</div>
+                                            <div style={{ fontWeight: 600, marginBottom: 4 }}>{alert.gpu_name || 'GPU'}</div>
                                             <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                                                Target: ${alert.target_price} · 
-                                                {alert.is_active ? (
+                                                Target: ${alert.targetPrice} ·
+                                                {alert.isActive ? (
                                                     <span style={{ color: '#22c55e' }}>Active</span>
                                                 ) : (
                                                     <span style={{ color: '#6b7280' }}>Paused</span>
